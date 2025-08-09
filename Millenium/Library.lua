@@ -657,7 +657,6 @@ end
                 BorderSizePixel = 0;
                 BackgroundColor3 = rgb(14, 14, 16);
                 ZIndex = 2;
-                Visible = false;
             });                
 
             library:create( "UICorner" , {
@@ -724,9 +723,6 @@ end
             library:resizify(items[ "main" ])
         end 
 
-        library.main_frame = items[ "main" ]
-        library.base_window_height = library.base_window_height or items["main"].Size.Y.Offset
-
         function cfg.toggle_menu(bool) 
             -- WIP 
             -- if cfg.tween then 
@@ -757,7 +753,7 @@ end
         } 
 
         local items = cfg.items; do 
-            items[ "tab_holder" ] = library:create( "ScrollingFrame" , {
+            items[ "tab_holder" ] = library:create( "Frame" , {
                 Parent = library.cache;
                 Name = "\0";
                 Visible = false;
@@ -766,90 +762,8 @@ end
                 BorderColor3 = rgb(0, 0, 0);
                 Size = dim2(1, -216, 1, -101);
                 BorderSizePixel = 0;
-                BackgroundColor3 = rgb(255, 255, 255);
-                AutomaticCanvasSize = Enum.AutomaticSize.None;
-                CanvasSize = dim2(0,0,0,0);
-                ScrollingDirection = Enum.ScrollingDirection.Y;
-                ScrollBarThickness = 6;
-                ScrollBarImageColor3 = themes.preset.accent;
-                ScrollingEnabled = true;
-                Active = true;
-                ClipsDescendants = true;
+                BackgroundColor3 = rgb(255, 255, 255)
             });
-            items[ "tab_list" ] = library:create("UIListLayout", {
-                Parent = items["tab_holder" ];
-                FillDirection = Enum.FillDirection.Vertical;
-                SortOrder = Enum.SortOrder.LayoutOrder;
-                Padding = dim(0,7);
-            })
-            library.tab_holder_ref = items[ "tab_holder" ]
-            local tabList = items["tab_list"]
-            library:connection(uis.InputChanged, function(input)
-                local holder = items["tab_holder"]
-                if not (holder and holder.Visible) then return end
-                if input.UserInputType ~= Enum.UserInputType.MouseWheel then return end
-                local mousePos = uis:GetMouseLocation()
-                local absPos = holder.AbsolutePosition
-                local absSize = holder.AbsoluteSize
-                local inside = mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X and mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y
-                if not inside then return end
-                local total = holder.CanvasSize.Y.Offset
-                local view = holder.AbsoluteSize.Y
-                local maxPos = math.max(0, total - view)
-                if maxPos <= 0 then return end
-                local delta = -input.Position.Z * 40
-                local newY = math.clamp(holder.CanvasPosition.Y + delta, 0, maxPos)
-                holder.CanvasPosition = Vector2.new(0, newY)
-            end)
-            local lastUpdate = 0
-            local refreshing = false
-            local function measureContentHeight()
-                local holder = items["tab_holder"]
-                if not (holder and holder.Visible) then return 0 end
-                if not tabList then return holder.AbsoluteSize.Y end
-                return (tabList.AbsoluteContentSize and tabList.AbsoluteContentSize.Y) or holder.AbsoluteSize.Y
-            end
-            
-            local function refreshCanvas()
-                if refreshing then return end
-                refreshing = true
-                
-                local now = os.clock()
-                if now - lastUpdate < 0.3 then 
-                    refreshing = false
-                    return 
-                end
-                
-                lastUpdate = now
-                local holder = items["tab_holder"]
-                if not (holder and holder.Visible) then 
-                    refreshing = false
-                    return 
-                end
-                
-                local contentHeight = measureContentHeight()
-                local target = math.max(holder.AbsoluteSize.Y + 10, math.min(contentHeight + 20, holder.AbsoluteSize.Y * 2))
-                
-                if math.abs((holder.CanvasSize.Y.Offset or 0) - target) > 2 then
-                    holder.CanvasSize = dim2(0, 0, 0, target)
-                end
-                
-                holder.ScrollBarThickness = (contentHeight > holder.AbsoluteSize.Y) and 6 or 0
-                
-                refreshing = false
-            end
-            local pendingRefresh = false
-            local function scheduleRefresh()
-                if pendingRefresh then return end
-                pendingRefresh = true
-                task.defer(function()
-                    pendingRefresh = false
-                    refreshCanvas()
-                end)
-            end
-            if tabList then
-                library:connection(tabList:GetPropertyChangedSignal("AbsoluteContentSize"), scheduleRefresh)
-            end
             
             -- Tab buttons 
                 items[ "button" ] = library:create( "TextButton" , {
@@ -918,7 +832,7 @@ end
             -- 
 
             -- Multi Sections
-            items[ "multi_section_button_holder" ] = library:create( "Frame" , {
+                items[ "multi_section_button_holder" ] = library:create( "Frame" , {
                     Parent = library.cache;
                     BackgroundTransparency = 1;
                     Name = "\0";
@@ -928,9 +842,6 @@ end
                     BorderSizePixel = 0;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-            library:connection(items[ "multi_section_button_holder" ].DescendantAdded, function()
-                if library.EnsureWindowFits then library:EnsureWindowFits() end
-            end)
                 
                 library:create( "UIListLayout" , {
                     Parent = items[ "multi_section_button_holder" ];
@@ -1026,14 +937,13 @@ end
                                 BackgroundTransparency = 1;
                                 Name = "\0";
                                 BorderColor3 = rgb(0, 0, 0);
-                                Size = dim2(1, -20, 0, 0);
+                                Size = dim2(1, -20, 1, -20);
                                 BorderSizePixel = 0;
                                 Visible = false;
-                                AutomaticSize = Enum.AutomaticSize.Y;
                                 BackgroundColor3 = rgb(255, 255, 255)
                             });
                             
-                            local innerList = library:create( "UIListLayout" , {
+                            library:create( "UIListLayout" , {
                                 FillDirection = Enum.FillDirection.Vertical;
                                 HorizontalFlex = Enum.UIFlexAlignment.Fill;
                                 Parent = multi_items[ "tab" ];
@@ -1041,9 +951,6 @@ end
                                 SortOrder = Enum.SortOrder.LayoutOrder;
                                 VerticalFlex = Enum.UIFlexAlignment.Fill
                             });
-                            library:connection(innerList:GetPropertyChangedSignal("AbsoluteContentSize"), function()
-                                if library.EnsureWindowFits then library:EnsureWindowFits() end
-                            end)
                             
                             library:create( "UIPadding" , {
                                 PaddingTop = dim(0, 7);
@@ -1069,14 +976,8 @@ end
                         local page = cfg.current_multi; 
                         
                         if page and page.text ~= data.text then 
-                            self.items[ "global_fade" ].Visible = true
                             self.items[ "global_fade" ].BackgroundTransparency = 0
                             library:tween(self.items[ "global_fade" ], {BackgroundTransparency = 1}, Enum.EasingStyle.Quad, 0.4)
-                            task.delay(0.45, function()
-                                if self and self.items and self.items[ "global_fade" ] then
-                                    self.items[ "global_fade" ].Visible = false
-                                end
-                            end)
                             
                             local old_size = page.page.Size
                             page.page.Size = dim2(1, -20, 1, -20)
@@ -1094,19 +995,14 @@ end
                         library:tween(data.text, {TextColor3 = rgb(255, 255, 255)})
                         library:tween(data.accent, {BackgroundTransparency = 0})
                         library:tween(data.button, {BackgroundTransparency = 0})
-                        library:tween(data.page, {Size = dim2(1, 0, 0, 0)}, Enum.EasingStyle.Quad, 0.4)
+                        library:tween(data.page, {Size = dim2(1, 0, 1, 0)}, Enum.EasingStyle.Quad, 0.4)
 
                         data.page.Visible = true
-                        data.page.LayoutOrder = 1
                         data.page.Parent = items["tab_holder"]
-                        items["tab_holder"].CanvasPosition = Vector2.new(0, 0)
 
                         cfg.current_multi = data
 
                         library:close_element()
-                        task.defer(function()
-                            if library.EnsureWindowFits then library:EnsureWindowFits() end
-                        end)
                     end
 
                     multi_items[ "button" ].MouseButton1Down:Connect(function()
@@ -1120,39 +1016,14 @@ end
             --
         end 
 
-        function library:EnsureWindowFits()
-            local main = self.main_frame
-            local holder = self.tab_holder_ref
-            if not (main and holder and holder.Visible) then return end
-            local layout = holder:FindFirstChildOfClass("UIListLayout")
-            local contentHeight = (layout and layout.AbsoluteContentSize and layout.AbsoluteContentSize.Y) or 0
-            local viewHeight = holder.AbsoluteSize.Y
-            local maxWindow = math.floor(workspace.CurrentCamera.ViewportSize.Y * 0.9)
-            local fixed = self.base_window_height or library.base_window_height or 565
-            local newWindow = math.min(fixed, maxWindow)
-            if math.abs(main.Size.Y.Offset - newWindow) > 1 then
-                main.Size = dim2(0, main.Size.X.Offset, 0, newWindow)
-            end
-            local paddedHeight = contentHeight + 80
-            holder.CanvasSize = dim2(0, 0, 0, math.max(paddedHeight, holder.AbsoluteSize.Y + 1))
-            holder.ScrollBarThickness = (contentHeight > viewHeight) and 6 or 0
-            holder.ScrollingEnabled = true
-        end
-
         function cfg.open_tab() 
             local selected_tab = self.selected_tab
             
             if selected_tab then 
                 if selected_tab[ 4 ] ~= items[ "tab_holder" ] then 
-                    self.items[ "global_fade" ].Visible = true
                     self.items[ "global_fade" ].BackgroundTransparency = 0
                     
                     library:tween(self.items[ "global_fade" ], {BackgroundTransparency = 1}, Enum.EasingStyle.Quad, 0.4)
-                    task.delay(0.45, function()
-                        if self and self.items and self.items[ "global_fade" ] then
-                            self.items[ "global_fade" ].Visible = false
-                        end
-                    end)
                     selected_tab[ 4 ].Size = dim2(1, -216, 1, -101)
                 end
 
@@ -1170,9 +1041,6 @@ end
             library:tween(items[ "icon" ], {ImageColor3 = themes.preset.accent})
             library:tween(items[ "name" ], {TextColor3 = rgb(255, 255, 255)})
             library:tween(items[ "tab_holder" ], {Size = dim2(1, -196, 1, -81)}, Enum.EasingStyle.Quad, 0.4)
-            items["tab_holder"].CanvasSize = dim2(0,0,0, items["tab_holder"].AbsoluteSize.Y + 1)
-            items["tab_holder"].CanvasPosition = Vector2.new(0,0)
-            items["tab_holder"].ScrollBarThickness = 6
             
             items[ "tab_holder" ].Visible = true 
             items[ "tab_holder" ].Parent = self.items[ "main" ]
@@ -1188,9 +1056,6 @@ end
             }
 
             library:close_element()
-            task.defer(function()
-                if library.EnsureWindowFits then library:EnsureWindowFits() end
-            end)
         end
 
         items[ "button" ].MouseButton1Down:Connect(function()
