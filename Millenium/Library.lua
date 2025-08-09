@@ -697,8 +697,6 @@ end
                 BorderSizePixel = 0;
                 BackgroundColor3 = rgb(23, 23, 25)
             });
-
-            local ef_version = loadstring(game:HttpGet("https://raw.githubusercontent.com/ExploitingisFUNN/12312312313/refs/heads/main/version.txt"))()
             
             -- unified centered footer label
             items[ "footer" ] = library:create( "TextLabel" , {
@@ -706,7 +704,7 @@ end
                 Parent = items[ "info" ];
                 TextColor3 = rgb(72, 72, 73);
                 BorderColor3 = rgb(0, 0, 0);
-                Text = (cfg.footer ~= "" and cfg.footer + ' | ' + ef_version + ' | ' + 'exploitingis.fun') or (cfg.game_name ~= "" and cfg.game_name) or cfg.name;
+                Text = (cfg.footer ~= "" and cfg.footer) or (cfg.game_name ~= "" and cfg.game_name) or cfg.name;
                 Name = "\0";
                 Size = dim2(1, 0, 1, 0);
                 AnchorPoint = vec2(0.5, 0.5);
