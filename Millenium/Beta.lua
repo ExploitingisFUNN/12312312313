@@ -772,7 +772,42 @@ end
                 ZIndex = 1000;
             })
             library:create( "UICorner" , { Parent = toggleButton; CornerRadius = dim(0, 6) })
-            library:draggify(toggleButton, true)
+            do
+                local dragging = false
+                local startPos
+                local startOffset
+                
+                toggleButton.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = true
+                        startPos = input.Position
+                        startOffset = toggleButton.Position
+                    end
+                end)
+                
+                toggleButton.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
+                
+                library:connection(uis.InputChanged, function(input)
+                    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                        local delta = input.Position - startPos
+                        local viewport = camera.ViewportSize
+                        
+                        local newPosition = dim2(
+                            startOffset.X.Scale,
+                            clamp(startOffset.X.Offset + delta.X, -toggleButton.AbsoluteSize.X + 10, viewport.X - 10),
+                            startOffset.Y.Scale,
+                            clamp(startOffset.Y.Offset + delta.Y, 0, viewport.Y - toggleButton.AbsoluteSize.Y)
+                        )
+                        
+                        toggleButton.Position = newPosition
+                    end
+                end)
+            end
+            
             toggleButton.MouseButton1Click:Connect(function()
                 cfg.toggle_menu(not library[ "items" ].Enabled)
             end)
@@ -791,7 +826,42 @@ end
                 ZIndex = 1000;
             })
             library:create( "UICorner" , { Parent = lockButton; CornerRadius = dim(0, 6) })
-            library:draggify(lockButton, true)
+            
+            do
+                local dragging = false
+                local startPos
+                local startOffset
+                
+                lockButton.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = true
+                        startPos = input.Position
+                        startOffset = lockButton.Position
+                    end
+                end)
+                
+                lockButton.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
+                
+                library:connection(uis.InputChanged, function(input)
+                    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                        local delta = input.Position - startPos
+                        local viewport = camera.ViewportSize
+                        
+                        local newPosition = dim2(
+                            startOffset.X.Scale,
+                            clamp(startOffset.X.Offset + delta.X, -lockButton.AbsoluteSize.X + 10, viewport.X - 10),
+                            startOffset.Y.Scale,
+                            clamp(startOffset.Y.Offset + delta.Y, 0, viewport.Y - lockButton.AbsoluteSize.Y)
+                        )
+                        
+                        lockButton.Position = newPosition
+                    end
+                end)
+            end
             local function updateLockText()
                 lockButton.Text = library.cant_drag_forced and "Unlock" or "Lock"
             end
