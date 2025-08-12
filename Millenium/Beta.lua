@@ -1173,7 +1173,7 @@ end
                         library:tween(data.text, {TextColor3 = rgb(255, 255, 255)})
                         library:tween(data.accent, {BackgroundTransparency = 0})
                         library:tween(data.button, {BackgroundTransparency = 0})
-                        library:tween(data.page, {Size = dim2(1, 0, 1, 0)}, Enum.EasingStyle.Quad, 0.4)
+                        data.page.Size = dim2(1, 0, 0, 0)
 
                         data.page.Visible = true
                         data.page.Parent = items["tab_holder"]
@@ -1222,12 +1222,13 @@ end
             
             items[ "tab_holder" ].Visible = true 
             items[ "tab_holder" ].Parent = self.items[ "main" ]
-            -- Set proper canvas size for mobile to ensure all content is visible
+            -- Ensure canvas auto-expands on desktop; use fixed fallback only on mobile
             if library.is_mobile then
-                items[ "tab_holder" ].CanvasSize = dim2(0,0,0, 3000)
                 items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.None
+                items[ "tab_holder" ].CanvasSize = dim2(0,0,0, 3000)
             else
-                items[ "tab_holder" ].CanvasSize = dim2(0,0,0, 1000)
+                items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+                items[ "tab_holder" ].CanvasSize = dim2(0,0,0,0)
             end
             items[ "multi_section_button_holder" ].Visible = true 
             items[ "multi_section_button_holder" ].Parent = self.items[ "multi_holder" ]
@@ -1341,7 +1342,11 @@ end
                     properties.ScrollingDirection = Enum.ScrollingDirection.Y
                     items[ "tab_parent" ] = library:create("ScrollingFrame", properties)
                 else
-                    items[ "tab_parent" ] = library:create("Frame", properties)
+                items[ "tab_parent" ] = library:create("ScrollingFrame", properties)
+                items[ "tab_parent" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+                items[ "tab_parent" ].CanvasSize = dim2(0,0,0,0)
+                items[ "tab_parent" ].ScrollBarThickness = 3
+                items[ "tab_parent" ].ScrollingDirection = Enum.ScrollingDirection.Y
                 end
                 
                 library:create( "UIListLayout" , {
@@ -1402,11 +1407,11 @@ end
                 CornerRadius = dim(0, 7)
             });
             
-            items[ "scrolling" ] = library:create( library.is_mobile and "Frame" or "ScrollingFrame" , {
-                ScrollBarImageColor3 = not library.is_mobile and themes.preset.accent or nil;
-                Active = not library.is_mobile and true or nil;
-                AutomaticCanvasSize = not library.is_mobile and Enum.AutomaticSize.Y or nil;
-                ScrollBarThickness = not library.is_mobile and 2 or nil;
+            items[ "scrolling" ] = library:create( "ScrollingFrame" , {
+                ScrollBarImageColor3 = themes.preset.accent;
+                Active = true;
+                AutomaticCanvasSize = Enum.AutomaticSize.Y;
+                ScrollBarThickness = library.is_mobile and 6 or 2;
                 Parent = items[ "inline" ];
                 Name = "\0";
                 Size = dim2(1, -10, 1, -40);
@@ -1416,10 +1421,10 @@ end
                 BorderColor3 = rgb(0, 0, 0);
                 BorderSizePixel = 0;
                 ClipsDescendants = true;
-                ScrollingDirection = not library.is_mobile and Enum.ScrollingDirection.Y or nil;
-                ScrollingEnabled = not library.is_mobile and true or nil;
-                ElasticBehavior = not library.is_mobile and Enum.ElasticBehavior.Always or nil
-            }); if not library.is_mobile then library:apply_theme(items[ "scrolling" ], "accent", "ScrollBarImageColor3"); end
+                ScrollingDirection = Enum.ScrollingDirection.Y;
+                ScrollingEnabled = true;
+                ElasticBehavior = Enum.ElasticBehavior.Always
+            }); library:apply_theme(items[ "scrolling" ], "accent", "ScrollBarImageColor3");
             
             items[ "elements" ] = library:create( "Frame" , {
                 BorderColor3 = rgb(0, 0, 0);
@@ -1609,24 +1614,10 @@ end
             local PADDING_BOTTOM = 15
 
             local function recompute_section_height()
-                if library.is_mobile then
-                    items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
-                    items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
-                    if items[ "scrolling" ].ClassName == "ScrollingFrame" then
-                        items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
-                    end
-                    items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
-                else
-                    local contentHeight = items[ "elements" ].AbsoluteSize.Y + PADDING_BOTTOM
-                    local desired = HEADER_HEIGHT + contentHeight + 2
-                    local current = items[ "outline" ].Size.Y.Offset
-                    local newHeight = math.max(MIN_SECTION_HEIGHT, desired)
-                    if current ~= newHeight then
-                        items[ "outline" ].Size = dim2(0, 0, 0, newHeight)
-                        items[ "inline" ].Size = dim2(1, -2, 1, -2)
-                        items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
-                    end
-                end
+                items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
+                items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
+                items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+                items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
             end
 
             local function bind_resize_watch(node)
