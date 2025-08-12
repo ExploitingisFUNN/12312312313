@@ -216,10 +216,6 @@ end
     end
 
     function library:bevelize(frame)
-        if frame:IsA("TextButton") or frame:IsA("TextLabel") or frame:IsA("TextBox") then
-            return
-        end
-
         local grad = Instance.new("UIGradient")
         grad.Color = rgbseq{
             rgbkey(0, rgb(40, 40, 44)),
@@ -1313,14 +1309,13 @@ end
             
             items[ "tab_holder" ].Visible = true 
             items[ "tab_holder" ].Parent = self.items[ "main" ]
+            -- Ensure canvas auto-expands on desktop; use fixed fallback only on mobile
             if library.is_mobile then
                 items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.None
                 items[ "tab_holder" ].CanvasSize = dim2(0,0,0, 3000)
             else
                 items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
                 items[ "tab_holder" ].CanvasSize = dim2(0,0,0,0)
-                items[ "tab_holder" ].ScrollBarThickness = 3
-                items[ "tab_holder" ].ScrollingEnabled = true
             end
             items[ "multi_section_button_holder" ].Visible = true 
             items[ "multi_section_button_holder" ].Parent = self.items[ "multi_holder" ]
@@ -1516,7 +1511,6 @@ end
                 ClipsDescendants = true;
                 ScrollingDirection = Enum.ScrollingDirection.Y;
                 ScrollingEnabled = true;
-                CanvasPadding = dim2(0,0,0,12);
                 ElasticBehavior = Enum.ElasticBehavior.Always
             }); library:apply_theme(items[ "scrolling" ], "accent", "ScrollBarImageColor3");
             
@@ -1525,8 +1519,8 @@ end
                 Parent = items[ "scrolling" ];
                 Name = "\0";
                 BackgroundTransparency = 1;
-                Position = library.is_mobile and dim2(0, 6, 0, 6) or dim2(0, 10, 0, 10);
-                Size = library.is_mobile and dim2(1, -12, 0, 0) or dim2(1, -20, 0, 0);
+                Position = library.is_mobile and dim2(0, 0, 0, 0) or dim2(0, 10, 0, 10);
+                Size = library.is_mobile and dim2(1, 0, 0, 0) or dim2(1, -20, 0, 0);
                 BorderSizePixel = 0;
                 AutomaticSize = Enum.AutomaticSize.Y;
                 BackgroundColor3 = rgb(255, 255, 255)
@@ -1534,7 +1528,7 @@ end
             
             library:create( "UIListLayout" , {
                 Parent = items[ "elements" ];
-                Padding = dim(0, library.is_mobile and 8 or 10);
+                Padding = dim(0, library.is_mobile and 4 or 10);
                 SortOrder = Enum.SortOrder.LayoutOrder
             });
             
@@ -1708,9 +1702,10 @@ end
             local PADDING_BOTTOM = 15
 
             local function recompute_section_height()
+                local layout = items[ "elements" ]:FindFirstChildWhichIsA("UIListLayout")
+                local contentHeight = (layout and layout.AbsoluteContentSize.Y or items[ "elements" ].AbsoluteSize.Y) + PADDING_BOTTOM
                 if library.is_mobile then
-                    local contentHeight = items[ "elements" ].AbsoluteSize.Y + PADDING_BOTTOM
-                    local totalDesired = HEADER_HEIGHT + contentHeight + 2
+                    local totalDesired = HEADER_HEIGHT + contentHeight + 8
                     local maxMobile = math.floor(camera.ViewportSize.Y * 0.7)
                     local minMobile = 180
                     if totalDesired <= maxMobile then
@@ -1726,10 +1721,9 @@ end
                         items[ "inline" ].Size = dim2(1, -2, 1, -2)
                     end
                     items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
-                    items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
+                    items[ "scrolling" ].Size = dim2(1, 0, 1, -(HEADER_HEIGHT + 8))
                 else
-                    local contentHeight = items[ "elements" ].AbsoluteSize.Y + PADDING_BOTTOM
-                    local desired = HEADER_HEIGHT + contentHeight + 2
+                    local desired = HEADER_HEIGHT + contentHeight + 8
                     local current = items[ "outline" ].Size.Y.Offset
                     local newHeight = math.max(MIN_SECTION_HEIGHT, desired)
                     if current ~= newHeight then
@@ -1738,7 +1732,7 @@ end
                         items[ "outline" ].Size = dim2(0, 0, 0, newHeight)
                         items[ "inline" ].Size = dim2(1, -2, 1, -2)
                         items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
-                        items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
+                        items[ "scrolling" ].Size = dim2(1, 0, 1, -(HEADER_HEIGHT + 8))
                     end
                 end
             end
@@ -1754,6 +1748,10 @@ end
                 library:connection(node.ChildRemoved, recompute_section_height)
                 for _, ch in node:GetDescendants() do
                     if ch:IsA("GuiObject") then bind_resize_watch(ch) end
+                end
+                local lo = node:FindFirstChildWhichIsA("UIListLayout")
+                if lo then
+                    library:connection(lo:GetPropertyChangedSignal("AbsoluteContentSize"), recompute_section_height)
                 end
             end
 
@@ -2401,7 +2399,7 @@ end
                 
                 items[ "sub_text" ] = library:create( "TextLabel" , {
                     FontFace = fonts.small;
-                    TextColor3 = rgb(220, 220, 220);
+                    TextColor3 = rgb(86, 86, 87);
                     BorderColor3 = rgb(0, 0, 0);
                     Text = "awdawdawdawdawdawdawdaw";
                     Parent = items[ "dropdown" ];
@@ -2424,7 +2422,7 @@ end
                 });
                 
                 items[ "indicator" ] = library:create( "ImageLabel" , {
-                    ImageColor3 = rgb(200, 200, 200);
+                    ImageColor3 = rgb(86, 86, 87);
                     BorderColor3 = rgb(0, 0, 0);
                     Parent = items[ "dropdown" ];
                     AnchorPoint = vec2(1, 0.5);
@@ -2457,10 +2455,9 @@ end
                     ClipsDescendants = true;
                     BorderColor3 = rgb(0, 0, 0);
                     BorderSizePixel = 0;
-                    BackgroundColor3 = rgb(28, 28, 30);
+                    BackgroundColor3 = rgb(33, 33, 35);
                     ZIndex = 10;
                 });
-                library:bevelize(items["outline"]) 
                 
                 library:create( "UIPadding" , {
                     PaddingBottom = dim(0, 6);
@@ -2498,7 +2495,7 @@ end
         function cfg.render_option(text)
             local button = library:create( "TextButton" , {
                 FontFace = fonts.small;
-                TextColor3 = rgb(220, 220, 220);
+                TextColor3 = rgb(72, 72, 73);
                 BorderColor3 = rgb(0, 0, 0);
                 Text = text;
                 Parent = items[ "list_scroller" ];
@@ -2557,7 +2554,7 @@ end
                     cfg.multi_items = selected
                     option.TextColor3 = themes.preset.accent
                 else
-                    option.TextColor3 = rgb(210, 210, 210)
+                    option.TextColor3 = rgb(72, 72, 73)
                 end
             end
 
