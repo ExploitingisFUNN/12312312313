@@ -1309,13 +1309,14 @@ end
             
             items[ "tab_holder" ].Visible = true 
             items[ "tab_holder" ].Parent = self.items[ "main" ]
-            -- Ensure canvas auto-expands on desktop; use fixed fallback only on mobile
             if library.is_mobile then
                 items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.None
                 items[ "tab_holder" ].CanvasSize = dim2(0,0,0, 3000)
             else
                 items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
                 items[ "tab_holder" ].CanvasSize = dim2(0,0,0,0)
+                items[ "tab_holder" ].ScrollBarThickness = 3
+                items[ "tab_holder" ].ScrollingEnabled = true
             end
             items[ "multi_section_button_holder" ].Visible = true 
             items[ "multi_section_button_holder" ].Parent = self.items[ "multi_holder" ]
@@ -1511,6 +1512,7 @@ end
                 ClipsDescendants = true;
                 ScrollingDirection = Enum.ScrollingDirection.Y;
                 ScrollingEnabled = true;
+                CanvasPadding = dim2(0,0,0,12);
                 ElasticBehavior = Enum.ElasticBehavior.Always
             }); library:apply_theme(items[ "scrolling" ], "accent", "ScrollBarImageColor3");
             
@@ -1519,8 +1521,8 @@ end
                 Parent = items[ "scrolling" ];
                 Name = "\0";
                 BackgroundTransparency = 1;
-                Position = library.is_mobile and dim2(0, 0, 0, 0) or dim2(0, 10, 0, 10);
-                Size = library.is_mobile and dim2(1, 0, 0, 0) or dim2(1, -20, 0, 0);
+                Position = library.is_mobile and dim2(0, 6, 0, 6) or dim2(0, 10, 0, 10);
+                Size = library.is_mobile and dim2(1, -12, 0, 0) or dim2(1, -20, 0, 0);
                 BorderSizePixel = 0;
                 AutomaticSize = Enum.AutomaticSize.Y;
                 BackgroundColor3 = rgb(255, 255, 255)
@@ -1528,7 +1530,7 @@ end
             
             library:create( "UIListLayout" , {
                 Parent = items[ "elements" ];
-                Padding = dim(0, library.is_mobile and 4 or 10);
+                Padding = dim(0, library.is_mobile and 8 or 10);
                 SortOrder = Enum.SortOrder.LayoutOrder
             });
             
