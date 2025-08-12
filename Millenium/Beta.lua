@@ -1614,10 +1614,28 @@ end
             local PADDING_BOTTOM = 15
 
             local function recompute_section_height()
-                items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
-                items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
-                items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
-                items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
+                if library.is_mobile then
+                    local FIXED_MOBILE_HEIGHT = 260
+                    items[ "outline" ].AutomaticSize = Enum.AutomaticSize.None
+                    items[ "inline" ].AutomaticSize = Enum.AutomaticSize.None
+                    items[ "outline" ].Size = dim2(0, 0, 0, FIXED_MOBILE_HEIGHT)
+                    items[ "inline" ].Size = dim2(1, -2, 1, -2)
+                    items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+                    items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
+                else
+                    local contentHeight = items[ "elements" ].AbsoluteSize.Y + PADDING_BOTTOM
+                    local desired = HEADER_HEIGHT + contentHeight + 2
+                    local current = items[ "outline" ].Size.Y.Offset
+                    local newHeight = math.max(MIN_SECTION_HEIGHT, desired)
+                    if current ~= newHeight then
+                        items[ "outline" ].AutomaticSize = Enum.AutomaticSize.None
+                        items[ "inline" ].AutomaticSize = Enum.AutomaticSize.None
+                        items[ "outline" ].Size = dim2(0, 0, 0, newHeight)
+                        items[ "inline" ].Size = dim2(1, -2, 1, -2)
+                        items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+                        items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
+                    end
+                end
             end
 
             local function bind_resize_watch(node)
