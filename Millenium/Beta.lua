@@ -216,6 +216,10 @@ end
     end
 
     function library:bevelize(frame)
+        if frame:IsA("TextButton") or frame:IsA("TextLabel") or frame:IsA("TextBox") then
+            return
+        end
+
         local grad = Instance.new("UIGradient")
         grad.Color = rgbseq{
             rgbkey(0, rgb(40, 40, 44)),
@@ -2397,7 +2401,7 @@ end
                 
                 items[ "sub_text" ] = library:create( "TextLabel" , {
                     FontFace = fonts.small;
-                    TextColor3 = rgb(86, 86, 87);
+                    TextColor3 = rgb(220, 220, 220);
                     BorderColor3 = rgb(0, 0, 0);
                     Text = "awdawdawdawdawdawdawdaw";
                     Parent = items[ "dropdown" ];
@@ -2420,7 +2424,7 @@ end
                 });
                 
                 items[ "indicator" ] = library:create( "ImageLabel" , {
-                    ImageColor3 = rgb(86, 86, 87);
+                    ImageColor3 = rgb(200, 200, 200);
                     BorderColor3 = rgb(0, 0, 0);
                     Parent = items[ "dropdown" ];
                     AnchorPoint = vec2(1, 0.5);
@@ -2453,9 +2457,10 @@ end
                     ClipsDescendants = true;
                     BorderColor3 = rgb(0, 0, 0);
                     BorderSizePixel = 0;
-                    BackgroundColor3 = rgb(33, 33, 35);
+                    BackgroundColor3 = rgb(28, 28, 30);
                     ZIndex = 10;
                 });
+                library:bevelize(items["outline"]) 
                 
                 library:create( "UIPadding" , {
                     PaddingBottom = dim(0, 6);
@@ -2493,7 +2498,7 @@ end
         function cfg.render_option(text)
             local button = library:create( "TextButton" , {
                 FontFace = fonts.small;
-                TextColor3 = rgb(72, 72, 73);
+                TextColor3 = rgb(220, 220, 220);
                 BorderColor3 = rgb(0, 0, 0);
                 Text = text;
                 Parent = items[ "list_scroller" ];
@@ -2552,7 +2557,7 @@ end
                     cfg.multi_items = selected
                     option.TextColor3 = themes.preset.accent
                 else
-                    option.TextColor3 = rgb(72, 72, 73)
+                    option.TextColor3 = rgb(210, 210, 210)
                 end
             end
 
