@@ -1398,7 +1398,7 @@ end
                 library:create( "UIListLayout" , {
                     Parent = items[ "column" ];
                     HorizontalFlex = Enum.UIFlexAlignment.Fill;
-                    Padding = dim(0, library.is_mobile and 3 or 10);
+                    Padding = dim(0, library.is_mobile and 10 or 10);
                     FillDirection = Enum.FillDirection.Vertical;
                     SortOrder = Enum.SortOrder.LayoutOrder
                 });
@@ -1703,7 +1703,6 @@ end
 
             local function recompute_section_height()
                 if library.is_mobile then
-                    -- Auto-fit up to a limit, then scroll inside section on mobile
                     local contentHeight = items[ "elements" ].AbsoluteSize.Y + PADDING_BOTTOM
                     local totalDesired = HEADER_HEIGHT + contentHeight + 2
                     local maxMobile = math.floor(camera.ViewportSize.Y * 0.7)
@@ -1711,6 +1710,8 @@ end
                     if totalDesired <= maxMobile then
                         items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
                         items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
+                        items[ "outline" ].Size = dim2(0,0,0, totalDesired)
+                        items[ "inline" ].Size = dim2(1,-2,1,-2)
                     else
                         items[ "outline" ].AutomaticSize = Enum.AutomaticSize.None
                         items[ "inline" ].AutomaticSize = Enum.AutomaticSize.None
