@@ -215,6 +215,53 @@ end
         return tween
     end
 
+    function library:bevelize(frame)
+        local grad = Instance.new("UIGradient")
+        grad.Color = rgbseq{
+            rgbkey(0, rgb(40, 40, 44)),
+            rgbkey(0.5, rgb(26, 26, 28)),
+            rgbkey(1, rgb(16, 16, 18))
+        }
+        grad.Rotation = 90
+        grad.Parent = frame
+
+        local topEdge = Instance.new("Frame")
+        topEdge.Name = "\0"
+        topEdge.Parent = frame
+        topEdge.Size = dim2(1, -2, 0, 1)
+        topEdge.Position = dim2(0, 1, 0, 1)
+        topEdge.BackgroundColor3 = rgb(90, 90, 94)
+        topEdge.BackgroundTransparency = 0.8
+        topEdge.BorderSizePixel = 0
+
+        local bottomEdge = Instance.new("Frame")
+        bottomEdge.Name = "\0"
+        bottomEdge.Parent = frame
+        bottomEdge.AnchorPoint = vec2(0, 1)
+        bottomEdge.Size = dim2(1, -2, 0, 1)
+        bottomEdge.Position = dim2(0, 1, 1, -1)
+        bottomEdge.BackgroundColor3 = rgb(0, 0, 0)
+        bottomEdge.BackgroundTransparency = 0.75
+        bottomEdge.BorderSizePixel = 0
+    end
+
+    function library:elevate(frame)
+        local shadow = Instance.new("ImageLabel")
+        shadow.Name = "\0"
+        shadow.Parent = frame
+        shadow.BackgroundTransparency = 1
+        shadow.AnchorPoint = vec2(0.5, 0.5)
+        shadow.Position = dim2(0.5, 0, 0.5, 0)
+        shadow.Size = dim2(1, 22, 1, 22)
+        shadow.Image = "rbxassetid://112971167999062"
+        shadow.ScaleType = Enum.ScaleType.Slice
+        shadow.SliceCenter = rect(vec2(112, 112), vec2(147, 147))
+        shadow.SliceScale = 0.75
+        shadow.ImageColor3 = rgb(0, 0, 0)
+        shadow.ImageTransparency = 0.55
+        shadow.ZIndex = -100
+    end
+
     function library:resizify(frame) 
         local Frame = Instance.new("TextButton")
         Frame.Position = dim2(1, -10, 1, -10)
@@ -564,6 +611,8 @@ end
                 Parent = items[ "main" ];
                 ApplyStrokeMode = Enum.ApplyStrokeMode.Border
             });
+            library:bevelize(items["main"]) 
+            library:elevate(items["main"]) 
             
             items[ "side_frame" ] = library:create( "Frame" , {
                 Parent = items[ "main" ];
@@ -673,7 +722,7 @@ end
                 ZIndex = -100;
                 BorderSizePixel = 0;
                 SliceCenter = rect(vec2(112, 112), vec2(147, 147));
-                ImageTransparency = 0.8
+                ImageTransparency = 0.6
             }); library:apply_theme(items[ "shadow" ], "accent", "ImageColor3");
             
             items[ "global_fade" ] = library:create( "Frame" , {
@@ -697,8 +746,8 @@ end
                 local dir = -1
                 while items and items["shadow"] and items["shadow"].Parent do
                     local img = items["shadow"]
-                    img.ImageTransparency = math.clamp(img.ImageTransparency + (dir * 0.02), 0.6, 0.9)
-                    if img.ImageTransparency <= 0.6 then dir = 1 elseif img.ImageTransparency >= 0.9 then dir = -1 end
+                    img.ImageTransparency = math.clamp(img.ImageTransparency + (dir * 0.02), 0.45, 0.75)
+                    if img.ImageTransparency <= 0.45 then dir = 1 elseif img.ImageTransparency >= 0.75 then dir = -1 end
                     task.wait(0.05)
                 end
             end)
@@ -1439,6 +1488,7 @@ end
                 BackgroundColor3 = rgb(22, 22, 24),
                 AutomaticSize = library.is_mobile and Enum.AutomaticSize.Y or Enum.AutomaticSize.None
             });
+            library:bevelize(items[ "inline" ])
             
             library:create( "UICorner" , {
                 Parent = items[ "inline" ];
@@ -1853,6 +1903,7 @@ end
                         BorderSizePixel = 0;
                         BackgroundColor3 = rgb(22, 22, 24)
                     }); library:apply_theme(items[ "outline" ], "accent", "BackgroundColor3");
+                    library:bevelize(items[ "outline" ])
                     
                     items[ "tick" ] = library:create( "ImageLabel" , {
                         ImageTransparency = 1;
@@ -2100,6 +2151,8 @@ end
                 TextSize = 14;
                 BackgroundColor3 = rgb(33, 33, 35)
             });
+            library:bevelize(items[ "button" ])
+            library:bevelize(items[ "slider" ])
             
             library:create( "UICorner" , {
                 Parent = items[ "slider" ];
@@ -2330,6 +2383,7 @@ end
                     TextSize = 14;
                     BackgroundColor3 = rgb(33, 33, 35)
                 });
+                library:bevelize(items[ "dropdown" ])
                 
                 library:create( "UICorner" , {
                     Parent = items[ "dropdown" ];
@@ -2450,6 +2504,7 @@ end
                 BackgroundColor3 = rgb(33, 33, 35);
                 ZIndex = 10;
             }); library:apply_theme(button, "accent", "TextColor3");
+            library:bevelize(button)
             library:create( "UICorner" , { Parent = button; CornerRadius = dim(0,4) });
             library:create( "UIStroke" , { Parent = button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border });
             
@@ -2777,6 +2832,7 @@ end
                     BorderSizePixel = 0;
                     BackgroundColor3 = rgb(22, 22, 24)
                 });
+                library:bevelize(items[ "colorpicker_components" ])
                 
                 library:create( "UICorner" , {
                     Parent = items[ "colorpicker_components" ];
@@ -3239,6 +3295,7 @@ end
                 Size = dim2(1, -4, 0, 30);
                 BackgroundColor3 = rgb(33, 33, 35)
             }); 
+            library:bevelize(items[ "input" ])
 
             library:create( "UICorner" , {
                 Parent = items[ "input" ];
@@ -3378,6 +3435,7 @@ end
                     TextSize = 14;
                     BackgroundColor3 = rgb(33, 33, 35)
                 });
+                library:bevelize(items[ "keybind_holder" ])
                 
                 library:create( "UICorner" , {
                     Parent = items[ "keybind_holder" ];
@@ -3430,6 +3488,7 @@ end
                     BorderSizePixel = 0;
                     BackgroundColor3 = rgb(22, 22, 24)
                 });
+                library:bevelize(items[ "inline" ])
                 
                 library:create( "UIPadding" , {
                     PaddingBottom = dim(0, 6);
@@ -3713,6 +3772,7 @@ end
                 BorderSizePixel = 0;
                 BackgroundColor3 = rgb(22, 22, 24)
             });
+            library:bevelize(items[ "inline" ])
             
             library:create( "UICorner" , {
                 Parent = items[ "inline" ];
