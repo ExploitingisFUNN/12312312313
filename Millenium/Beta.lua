@@ -505,7 +505,7 @@ end
             name = properties.name or properties.Name or "";
             game_name = properties.gameInfo or properties.game_info or properties.GameInfo or "";
             footer = properties.footer or properties.Footer or "";
-            size = properties.size or properties.Size or (library.is_mobile and dim2(0, 540, 0, 360) or dim2(0, 700, 0, 565));
+            size = properties.size or properties.Size or (library.is_mobile and dim2(0, 480, 0, 360) or dim2(0, 700, 0, 565));
             selected_tab;
             items = {};
 
@@ -746,6 +746,51 @@ end
                 TextSize = 14;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
+            do
+                local handle = library:create("TextButton", {
+                    Parent = items["info"]; Name = "\0";
+                    AutoButtonColor = false; Text = "";
+                    AnchorPoint = vec2(1, 0.5);
+                    Position = dim2(1, -8, 0.5, 0);
+                    Size = dim2(0, 16, 0, 16);
+                    BackgroundColor3 = rgb(33,33,35); BorderSizePixel = 0;
+                })
+                library:create("UICorner", { Parent = handle; CornerRadius = dim(0, 4) })
+                library:create("UIStroke", { Parent = handle; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
+
+                local grip = library:create("Frame", {
+                    Parent = handle; Name = "\0";
+                    AnchorPoint = vec2(0.5, 0.5);
+                    Position = dim2(0.5, 0, 0.5, 0);
+                    Size = dim2(0, 8, 0, 8);
+                    BackgroundColor3 = rgb(72,72,73); BorderSizePixel = 0;
+                })
+                library:create("UICorner", { Parent = grip; CornerRadius = dim(0, 2) })
+
+                local resizing = false
+                local startPos, startSize
+                handle.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        resizing = true
+                        startPos = input.Position
+                        startSize = items["main"].Size
+                    end
+                end)
+                library:connection(uis.InputEnded, function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        resizing = false
+                    end
+                end)
+                library:connection(uis.InputChanged, function(input)
+                    if not resizing then return end
+                    if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
+                    local delta = input.Position - startPos
+                    local minW, minH = 420, 300
+                    local newW = math.max(minW, startSize.X.Offset + delta.X)
+                    local newH = math.max(minH, startSize.Y.Offset + delta.Y)
+                    items["main"].Size = dim2(0, newW, 0, newH)
+                end)
+            end
         end 
 
         do
