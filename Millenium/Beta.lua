@@ -505,7 +505,7 @@ end
             name = properties.name or properties.Name or "";
             game_name = properties.gameInfo or properties.game_info or properties.GameInfo or "";
             footer = properties.footer or properties.Footer or "";
-            size = properties.size or properties.Size or (library.is_mobile and dim2(0, 480, 0, 360) or dim2(0, 700, 0, 565));
+            size = properties.size or properties.Size or (library.is_mobile and dim2(0, 540, 0, 360) or dim2(0, 700, 0, 565));
             selected_tab;
             items = {};
 
