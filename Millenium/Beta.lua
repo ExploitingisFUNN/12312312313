@@ -728,7 +728,6 @@ end
                 BackgroundColor3 = rgb(23, 23, 25)
             });
             
-            -- unified centered footer label
             items[ "footer" ] = library:create( "TextLabel" , {
                 FontFace = fonts.font;
                 Parent = items[ "info" ];
@@ -747,42 +746,36 @@ end
                 BackgroundColor3 = rgb(255, 255, 255)
             });
             do
-                local handle = library:create("TextButton", {
+                local resizeButton = library:create("TextButton", {
                     Parent = items["info"]; Name = "\0";
-                    AutoButtonColor = false; Text = "";
-                    AnchorPoint = vec2(1, 0.5);
-                    Position = dim2(1, -8, 0.5, 0);
-                    Size = dim2(0, 16, 0, 16);
-                    BackgroundColor3 = rgb(33,33,35); BorderSizePixel = 0;
+                    BackgroundTransparency = 1; Text = "";
+                    AnchorPoint = vec2(1, 0); Position = dim2(1, 0, 0, 0);
+                    Size = dim2(0, 36, 1, 0); SizeConstraint = Enum.SizeConstraint.RelativeYY;
+                    AutoButtonColor = false;
                 })
-                library:create("UICorner", { Parent = handle; CornerRadius = dim(0, 4) })
-                library:create("UIStroke", { Parent = handle; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
 
-                local grip = library:create("Frame", {
-                    Parent = handle; Name = "\0";
-                    AnchorPoint = vec2(0.5, 0.5);
-                    Position = dim2(0.5, 0, 0.5, 0);
-                    Size = dim2(0, 8, 0, 8);
-                    BackgroundColor3 = rgb(72,72,73); BorderSizePixel = 0;
+                local grip = library:create("ImageLabel", {
+                    Parent = resizeButton; Name = "\0";
+                    BackgroundTransparency = 1; ImageTransparency = 0.5;
+                    Position = dim2(0, 2, 0, 2); Size = dim2(1, -4, 1, -4);
+                    Image = "rbxassetid://112971167999062";
                 })
-                library:create("UICorner", { Parent = grip; CornerRadius = dim(0, 2) })
 
-                local resizing = false
-                local startPos, startSize
-                handle.InputBegan:Connect(function(input)
+                local dragging, startPos, startSize
+                resizeButton.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                        resizing = true
+                        dragging = true
                         startPos = input.Position
                         startSize = items["main"].Size
                     end
                 end)
                 library:connection(uis.InputEnded, function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                        resizing = false
+                        dragging = false
                     end
                 end)
                 library:connection(uis.InputChanged, function(input)
-                    if not resizing then return end
+                    if not dragging then return end
                     if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
                     local delta = input.Position - startPos
                     local minW, minH = 420, 300
@@ -1660,11 +1653,21 @@ end
 
             local function recompute_section_height()
                 if library.is_mobile then
-                    local FIXED_MOBILE_HEIGHT = 260
-                    items[ "outline" ].AutomaticSize = Enum.AutomaticSize.None
-                    items[ "inline" ].AutomaticSize = Enum.AutomaticSize.None
-                    items[ "outline" ].Size = dim2(0, 0, 0, FIXED_MOBILE_HEIGHT)
-                    items[ "inline" ].Size = dim2(1, -2, 1, -2)
+                    -- Auto-fit up to a limit, then scroll inside section on mobile
+                    local contentHeight = items[ "elements" ].AbsoluteSize.Y + PADDING_BOTTOM
+                    local totalDesired = HEADER_HEIGHT + contentHeight + 2
+                    local maxMobile = math.floor(camera.ViewportSize.Y * 0.7)
+                    local minMobile = 180
+                    if totalDesired <= maxMobile then
+                        items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
+                        items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
+                    else
+                        items[ "outline" ].AutomaticSize = Enum.AutomaticSize.None
+                        items[ "inline" ].AutomaticSize = Enum.AutomaticSize.None
+                        local clamped = math.max(minMobile, math.min(totalDesired, maxMobile))
+                        items[ "outline" ].Size = dim2(0, 0, 0, clamped)
+                        items[ "inline" ].Size = dim2(1, -2, 1, -2)
+                    end
                     items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
                     items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
                 else
