@@ -215,6 +215,53 @@ end
         return tween
     end
 
+    function library:bevelize(frame)
+        local grad = Instance.new("UIGradient")
+        grad.Color = rgbseq{
+            rgbkey(0, rgb(40, 40, 44)),
+            rgbkey(0.5, rgb(26, 26, 28)),
+            rgbkey(1, rgb(16, 16, 18))
+        }
+        grad.Rotation = 90
+        grad.Parent = frame
+
+        local topEdge = Instance.new("Frame")
+        topEdge.Name = "\0"
+        topEdge.Parent = frame
+        topEdge.Size = dim2(1, -2, 0, 1)
+        topEdge.Position = dim2(0, 1, 0, 1)
+        topEdge.BackgroundColor3 = rgb(90, 90, 94)
+        topEdge.BackgroundTransparency = 0.8
+        topEdge.BorderSizePixel = 0
+
+        local bottomEdge = Instance.new("Frame")
+        bottomEdge.Name = "\0"
+        bottomEdge.Parent = frame
+        bottomEdge.AnchorPoint = vec2(0, 1)
+        bottomEdge.Size = dim2(1, -2, 0, 1)
+        bottomEdge.Position = dim2(0, 1, 1, -1)
+        bottomEdge.BackgroundColor3 = rgb(0, 0, 0)
+        bottomEdge.BackgroundTransparency = 0.75
+        bottomEdge.BorderSizePixel = 0
+    end
+
+    function library:elevate(frame)
+        local shadow = Instance.new("ImageLabel")
+        shadow.Name = "\0"
+        shadow.Parent = frame
+        shadow.BackgroundTransparency = 1
+        shadow.AnchorPoint = vec2(0.5, 0.5)
+        shadow.Position = dim2(0.5, 0, 0.5, 0)
+        shadow.Size = dim2(1, 22, 1, 22)
+        shadow.Image = "rbxassetid://112971167999062"
+        shadow.ScaleType = Enum.ScaleType.Slice
+        shadow.SliceCenter = rect(vec2(112, 112), vec2(147, 147))
+        shadow.SliceScale = 0.75
+        shadow.ImageColor3 = rgb(0, 0, 0)
+        shadow.ImageTransparency = 0.55
+        shadow.ZIndex = -100
+    end
+
     function library:resizify(frame) 
         local Frame = Instance.new("TextButton")
         Frame.Position = dim2(1, -10, 1, -10)
@@ -564,6 +611,8 @@ end
                 Parent = items[ "main" ];
                 ApplyStrokeMode = Enum.ApplyStrokeMode.Border
             });
+            library:bevelize(items["main"]) 
+            library:elevate(items["main"]) 
             
             items[ "side_frame" ] = library:create( "Frame" , {
                 Parent = items[ "main" ];
@@ -673,7 +722,7 @@ end
                 ZIndex = -100;
                 BorderSizePixel = 0;
                 SliceCenter = rect(vec2(112, 112), vec2(147, 147));
-                ImageTransparency = 0.8
+                ImageTransparency = 0.6
             }); library:apply_theme(items[ "shadow" ], "accent", "ImageColor3");
             
             items[ "global_fade" ] = library:create( "Frame" , {
@@ -697,8 +746,8 @@ end
                 local dir = -1
                 while items and items["shadow"] and items["shadow"].Parent do
                     local img = items["shadow"]
-                    img.ImageTransparency = math.clamp(img.ImageTransparency + (dir * 0.02), 0.6, 0.9)
-                    if img.ImageTransparency <= 0.6 then dir = 1 elseif img.ImageTransparency >= 0.9 then dir = -1 end
+                    img.ImageTransparency = math.clamp(img.ImageTransparency + (dir * 0.02), 0.45, 0.75)
+                    if img.ImageTransparency <= 0.45 then dir = 1 elseif img.ImageTransparency >= 0.75 then dir = -1 end
                     task.wait(0.05)
                 end
             end)
@@ -728,7 +777,6 @@ end
                 BackgroundColor3 = rgb(23, 23, 25)
             });
             
-            -- unified centered footer label
             items[ "footer" ] = library:create( "TextLabel" , {
                 FontFace = fonts.font;
                 Parent = items[ "info" ];
@@ -746,6 +794,45 @@ end
                 TextSize = 14;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
+            do
+                local resizeButton = library:create("TextButton", {
+                    Parent = items["info"]; Name = "\0";
+                    BackgroundTransparency = 1; Text = "";
+                    AnchorPoint = vec2(1, 0); Position = dim2(1, 0, 0, 0);
+                    Size = dim2(0, 36, 1, 0); SizeConstraint = Enum.SizeConstraint.RelativeYY;
+                    AutoButtonColor = false;
+                })
+
+                local grip = library:create("ImageLabel", {
+                    Parent = resizeButton; Name = "\0";
+                    BackgroundTransparency = 1; ImageTransparency = 0.5;
+                    Position = dim2(0, 2, 0, 2); Size = dim2(1, -4, 1, -4);
+                    Image = "rbxassetid://112971167999062";
+                })
+
+                local dragging, startPos, startSize
+                resizeButton.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = true
+                        startPos = input.Position
+                        startSize = items["main"].Size
+                    end
+                end)
+                library:connection(uis.InputEnded, function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
+                library:connection(uis.InputChanged, function(input)
+                    if not dragging then return end
+                    if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
+                    local delta = input.Position - startPos
+                    local minW, minH = 420, 300
+                    local newW = math.max(minW, startSize.X.Offset + delta.X)
+                    local newH = math.max(minH, startSize.Y.Offset + delta.Y)
+                    items["main"].Size = dim2(0, newW, 0, newH)
+                end)
+            end
         end 
 
         do
@@ -772,7 +859,42 @@ end
                 ZIndex = 1000;
             })
             library:create( "UICorner" , { Parent = toggleButton; CornerRadius = dim(0, 6) })
-            library:draggify(toggleButton, true)
+            do
+                local dragging = false
+                local startPos
+                local startOffset
+                
+                toggleButton.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = true
+                        startPos = input.Position
+                        startOffset = toggleButton.Position
+                    end
+                end)
+                
+                toggleButton.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
+                
+                library:connection(uis.InputChanged, function(input)
+                    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                        local delta = input.Position - startPos
+                        local viewport = camera.ViewportSize
+                        
+                        local newPosition = dim2(
+                            startOffset.X.Scale,
+                            clamp(startOffset.X.Offset + delta.X, -toggleButton.AbsoluteSize.X + 10, viewport.X - 10),
+                            startOffset.Y.Scale,
+                            clamp(startOffset.Y.Offset + delta.Y, 0, viewport.Y - toggleButton.AbsoluteSize.Y)
+                        )
+                        
+                        toggleButton.Position = newPosition
+                    end
+                end)
+            end
+            
             toggleButton.MouseButton1Click:Connect(function()
                 cfg.toggle_menu(not library[ "items" ].Enabled)
             end)
@@ -791,7 +913,42 @@ end
                 ZIndex = 1000;
             })
             library:create( "UICorner" , { Parent = lockButton; CornerRadius = dim(0, 6) })
-            library:draggify(lockButton, true)
+            
+            do
+                local dragging = false
+                local startPos
+                local startOffset
+                
+                lockButton.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = true
+                        startPos = input.Position
+                        startOffset = lockButton.Position
+                    end
+                end)
+                
+                lockButton.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
+                
+                library:connection(uis.InputChanged, function(input)
+                    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                        local delta = input.Position - startPos
+                        local viewport = camera.ViewportSize
+                        
+                        local newPosition = dim2(
+                            startOffset.X.Scale,
+                            clamp(startOffset.X.Offset + delta.X, -lockButton.AbsoluteSize.X + 10, viewport.X - 10),
+                            startOffset.Y.Scale,
+                            clamp(startOffset.Y.Offset + delta.Y, 0, viewport.Y - lockButton.AbsoluteSize.Y)
+                        )
+                        
+                        lockButton.Position = newPosition
+                    end
+                end)
+            end
             local function updateLockText()
                 lockButton.Text = library.cant_drag_forced and "Unlock" or "Lock"
             end
@@ -1103,7 +1260,7 @@ end
                         library:tween(data.text, {TextColor3 = rgb(255, 255, 255)})
                         library:tween(data.accent, {BackgroundTransparency = 0})
                         library:tween(data.button, {BackgroundTransparency = 0})
-                        library:tween(data.page, {Size = dim2(1, 0, 1, 0)}, Enum.EasingStyle.Quad, 0.4)
+                        data.page.Size = dim2(1, 0, 0, 0)
 
                         data.page.Visible = true
                         data.page.Parent = items["tab_holder"]
@@ -1152,12 +1309,13 @@ end
             
             items[ "tab_holder" ].Visible = true 
             items[ "tab_holder" ].Parent = self.items[ "main" ]
-            -- Set proper canvas size for mobile to ensure all content is visible
+            -- Ensure canvas auto-expands on desktop; use fixed fallback only on mobile
             if library.is_mobile then
-                items[ "tab_holder" ].CanvasSize = dim2(0,0,0, 3000)
                 items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.None
+                items[ "tab_holder" ].CanvasSize = dim2(0,0,0, 3000)
             else
-                items[ "tab_holder" ].CanvasSize = dim2(0,0,0, 1000)
+                items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+                items[ "tab_holder" ].CanvasSize = dim2(0,0,0,0)
             end
             items[ "multi_section_button_holder" ].Visible = true 
             items[ "multi_section_button_holder" ].Parent = self.items[ "multi_holder" ]
@@ -1240,7 +1398,7 @@ end
                 library:create( "UIListLayout" , {
                     Parent = items[ "column" ];
                     HorizontalFlex = Enum.UIFlexAlignment.Fill;
-                    Padding = dim(0, library.is_mobile and 3 or 10);
+                    Padding = dim(0, library.is_mobile and 10 or 10);
                     FillDirection = Enum.FillDirection.Vertical;
                     SortOrder = Enum.SortOrder.LayoutOrder
                 });
@@ -1271,7 +1429,11 @@ end
                     properties.ScrollingDirection = Enum.ScrollingDirection.Y
                     items[ "tab_parent" ] = library:create("ScrollingFrame", properties)
                 else
-                    items[ "tab_parent" ] = library:create("Frame", properties)
+                items[ "tab_parent" ] = library:create("ScrollingFrame", properties)
+                items[ "tab_parent" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+                items[ "tab_parent" ].CanvasSize = dim2(0,0,0,0)
+                items[ "tab_parent" ].ScrollBarThickness = 3
+                items[ "tab_parent" ].ScrollingDirection = Enum.ScrollingDirection.Y
                 end
                 
                 library:create( "UIListLayout" , {
@@ -1326,17 +1488,18 @@ end
                 BackgroundColor3 = rgb(22, 22, 24),
                 AutomaticSize = library.is_mobile and Enum.AutomaticSize.Y or Enum.AutomaticSize.None
             });
+            library:bevelize(items[ "inline" ])
             
             library:create( "UICorner" , {
                 Parent = items[ "inline" ];
                 CornerRadius = dim(0, 7)
             });
             
-            items[ "scrolling" ] = library:create( library.is_mobile and "Frame" or "ScrollingFrame" , {
-                ScrollBarImageColor3 = not library.is_mobile and themes.preset.accent or nil;
-                Active = not library.is_mobile and true or nil;
-                AutomaticCanvasSize = not library.is_mobile and Enum.AutomaticSize.Y or nil;
-                ScrollBarThickness = not library.is_mobile and 2 or nil;
+            items[ "scrolling" ] = library:create( "ScrollingFrame" , {
+                ScrollBarImageColor3 = themes.preset.accent;
+                Active = true;
+                AutomaticCanvasSize = Enum.AutomaticSize.Y;
+                ScrollBarThickness = library.is_mobile and 6 or 2;
                 Parent = items[ "inline" ];
                 Name = "\0";
                 Size = dim2(1, -10, 1, -40);
@@ -1346,10 +1509,10 @@ end
                 BorderColor3 = rgb(0, 0, 0);
                 BorderSizePixel = 0;
                 ClipsDescendants = true;
-                ScrollingDirection = not library.is_mobile and Enum.ScrollingDirection.Y or nil;
-                ScrollingEnabled = not library.is_mobile and true or nil;
-                ElasticBehavior = not library.is_mobile and Enum.ElasticBehavior.Always or nil
-            }); if not library.is_mobile then library:apply_theme(items[ "scrolling" ], "accent", "ScrollBarImageColor3"); end
+                ScrollingDirection = Enum.ScrollingDirection.Y;
+                ScrollingEnabled = true;
+                ElasticBehavior = Enum.ElasticBehavior.Always
+            }); library:apply_theme(items[ "scrolling" ], "accent", "ScrollBarImageColor3");
             
             items[ "elements" ] = library:create( "Frame" , {
                 BorderColor3 = rgb(0, 0, 0);
@@ -1539,22 +1702,37 @@ end
             local PADDING_BOTTOM = 15
 
             local function recompute_section_height()
+                local layout = items[ "elements" ]:FindFirstChildWhichIsA("UIListLayout")
+                local contentHeight = (layout and layout.AbsoluteContentSize.Y or items[ "elements" ].AbsoluteSize.Y) + PADDING_BOTTOM
                 if library.is_mobile then
-                    items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
-                    items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
-                    if items[ "scrolling" ].ClassName == "ScrollingFrame" then
-                        items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+                    local totalDesired = HEADER_HEIGHT + contentHeight + 8
+                    local maxMobile = math.floor(camera.ViewportSize.Y * 0.7)
+                    local minMobile = 180
+                    if totalDesired <= maxMobile then
+                        items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
+                        items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
+                        items[ "outline" ].Size = dim2(0,0,0, totalDesired)
+                        items[ "inline" ].Size = dim2(1,-2,1,-2)
+                    else
+                        items[ "outline" ].AutomaticSize = Enum.AutomaticSize.None
+                        items[ "inline" ].AutomaticSize = Enum.AutomaticSize.None
+                        local clamped = math.max(minMobile, math.min(totalDesired, maxMobile))
+                        items[ "outline" ].Size = dim2(0, 0, 0, clamped)
+                        items[ "inline" ].Size = dim2(1, -2, 1, -2)
                     end
-                    items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
+                    items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+                    items[ "scrolling" ].Size = dim2(1, 0, 1, -(HEADER_HEIGHT + 8))
                 else
-                    local contentHeight = items[ "elements" ].AbsoluteSize.Y + PADDING_BOTTOM
-                    local desired = HEADER_HEIGHT + contentHeight + 2
+                    local desired = HEADER_HEIGHT + contentHeight + 8
                     local current = items[ "outline" ].Size.Y.Offset
                     local newHeight = math.max(MIN_SECTION_HEIGHT, desired)
                     if current ~= newHeight then
+                        items[ "outline" ].AutomaticSize = Enum.AutomaticSize.None
+                        items[ "inline" ].AutomaticSize = Enum.AutomaticSize.None
                         items[ "outline" ].Size = dim2(0, 0, 0, newHeight)
                         items[ "inline" ].Size = dim2(1, -2, 1, -2)
-                        items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
+                        items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+                        items[ "scrolling" ].Size = dim2(1, 0, 1, -(HEADER_HEIGHT + 8))
                     end
                 end
             end
@@ -1570,6 +1748,10 @@ end
                 library:connection(node.ChildRemoved, recompute_section_height)
                 for _, ch in node:GetDescendants() do
                     if ch:IsA("GuiObject") then bind_resize_watch(ch) end
+                end
+                local lo = node:FindFirstChildWhichIsA("UIListLayout")
+                if lo then
+                    library:connection(lo:GetPropertyChangedSignal("AbsoluteContentSize"), recompute_section_height)
                 end
             end
 
@@ -1726,6 +1908,7 @@ end
                         BorderSizePixel = 0;
                         BackgroundColor3 = rgb(22, 22, 24)
                     }); library:apply_theme(items[ "outline" ], "accent", "BackgroundColor3");
+                    library:bevelize(items[ "outline" ])
                     
                     items[ "tick" ] = library:create( "ImageLabel" , {
                         ImageTransparency = 1;
@@ -1973,6 +2156,8 @@ end
                 TextSize = 14;
                 BackgroundColor3 = rgb(33, 33, 35)
             });
+            library:bevelize(items[ "button" ])
+            library:bevelize(items[ "slider" ])
             
             library:create( "UICorner" , {
                 Parent = items[ "slider" ];
@@ -2203,6 +2388,7 @@ end
                     TextSize = 14;
                     BackgroundColor3 = rgb(33, 33, 35)
                 });
+                library:bevelize(items[ "dropdown" ])
                 
                 library:create( "UICorner" , {
                     Parent = items[ "dropdown" ];
@@ -2323,6 +2509,7 @@ end
                 BackgroundColor3 = rgb(33, 33, 35);
                 ZIndex = 10;
             }); library:apply_theme(button, "accent", "TextColor3");
+            library:bevelize(button)
             library:create( "UICorner" , { Parent = button; CornerRadius = dim(0,4) });
             library:create( "UIStroke" , { Parent = button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border });
             
@@ -2650,6 +2837,7 @@ end
                     BorderSizePixel = 0;
                     BackgroundColor3 = rgb(22, 22, 24)
                 });
+                library:bevelize(items[ "colorpicker_components" ])
                 
                 library:create( "UICorner" , {
                     Parent = items[ "colorpicker_components" ];
@@ -3112,6 +3300,7 @@ end
                 Size = dim2(1, -4, 0, 30);
                 BackgroundColor3 = rgb(33, 33, 35)
             }); 
+            library:bevelize(items[ "input" ])
 
             library:create( "UICorner" , {
                 Parent = items[ "input" ];
@@ -3251,6 +3440,7 @@ end
                     TextSize = 14;
                     BackgroundColor3 = rgb(33, 33, 35)
                 });
+                library:bevelize(items[ "keybind_holder" ])
                 
                 library:create( "UICorner" , {
                     Parent = items[ "keybind_holder" ];
@@ -3303,6 +3493,7 @@ end
                     BorderSizePixel = 0;
                     BackgroundColor3 = rgb(22, 22, 24)
                 });
+                library:bevelize(items[ "inline" ])
                 
                 library:create( "UIPadding" , {
                     PaddingBottom = dim(0, 6);
@@ -3586,6 +3777,7 @@ end
                 BorderSizePixel = 0;
                 BackgroundColor3 = rgb(22, 22, 24)
             });
+            library:bevelize(items[ "inline" ])
             
             library:create( "UICorner" , {
                 Parent = items[ "inline" ];
