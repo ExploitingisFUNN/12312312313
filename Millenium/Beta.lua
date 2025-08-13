@@ -952,13 +952,11 @@ end
                 Active = true;
                 ScrollBarThickness = library.is_mobile and 8 or 3;
                 ScrollingDirection = Enum.ScrollingDirection.Y;
-                AutomaticCanvasSize = library.is_mobile and Enum.AutomaticSize.None or Enum.AutomaticSize.Y;
-                CanvasSize = library.is_mobile and dim2(0,0,0,3000) or dim2(0,0,0,0);
+                AutomaticCanvasSize = Enum.AutomaticSize.Y;
+                CanvasSize = dim2(0,0,0,0);
                 ElasticBehavior = Enum.ElasticBehavior.Always;
                 ScrollingEnabled = true;
                 ScrollBarImageColor3 = themes.preset.accent;
-                ScrollingEnabled = true;
-                ElasticBehavior = Enum.ElasticBehavior.Always;
                 VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
             }); library:apply_theme(items[ "tab_holder" ], "accent", "ScrollBarImageColor3");
 
