@@ -598,7 +598,7 @@ end
                 AutomaticCanvasSize = Enum.AutomaticSize.Y;
                 CanvasSize = dim2(0,0,0,0);
                 ScrollingDirection = Enum.ScrollingDirection.Y;
-                ClipsDescendants = false;
+                ClipsDescendants = true;
                 Active = true;
                 ScrollBarImageColor3 = themes.preset.accent;
                 ScrollingEnabled = true
@@ -952,8 +952,8 @@ end
                 Active = true;
                 ScrollBarThickness = library.is_mobile and 8 or 3;
                 ScrollingDirection = Enum.ScrollingDirection.Y;
-                AutomaticCanvasSize = Enum.AutomaticSize.Y;
-                CanvasSize = dim2(0,0,0,0);
+                AutomaticCanvasSize = library.is_mobile and Enum.AutomaticSize.None or Enum.AutomaticSize.Y;
+                CanvasSize = library.is_mobile and dim2(0,0,0,3000) or dim2(0,0,0,0);
                 ElasticBehavior = Enum.ElasticBehavior.Always;
                 ScrollingEnabled = true;
                 ScrollBarImageColor3 = themes.preset.accent;
@@ -1257,13 +1257,9 @@ end
             
             items[ "tab_holder" ].Visible = true 
             items[ "tab_holder" ].Parent = self.items[ "main" ]
-            -- Set proper canvas size for mobile to ensure all content is visible
-            if library.is_mobile then
-                items[ "tab_holder" ].CanvasSize = dim2(0,0,0, 3000)
-                items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.None
-            else
-                items[ "tab_holder" ].CanvasSize = dim2(0,0,0, 1000)
-            end
+            items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+            items[ "tab_holder" ].CanvasSize = dim2(0,0,0,0)
+            items[ "tab_holder" ].ScrollBarThickness = library.is_mobile and 6 or 3
             items[ "multi_section_button_holder" ].Visible = true 
             items[ "multi_section_button_holder" ].Parent = self.items[ "multi_holder" ]
 
@@ -1368,11 +1364,16 @@ end
                     Visible = true,
                     BackgroundColor3 = rgb(255, 255, 255)
                 }
-                properties.ScrollBarThickness = library.is_mobile and 6 or 3
-                properties.AutomaticCanvasSize = Enum.AutomaticSize.Y
-                properties.CanvasSize = dim2(0,0,0,0)
-                properties.ScrollingDirection = Enum.ScrollingDirection.Y
-                items[ "tab_parent" ] = library:create("ScrollingFrame", properties)
+                
+                if library.is_mobile then
+                    properties.ScrollBarThickness = 6
+                    properties.AutomaticCanvasSize = Enum.AutomaticSize.Y
+                    properties.CanvasSize = dim2(0,0,0,0)
+                    properties.ScrollingDirection = Enum.ScrollingDirection.Y
+                    items[ "tab_parent" ] = library:create("ScrollingFrame", properties)
+                else
+                    items[ "tab_parent" ] = library:create("Frame", properties)
+                end
                 
                 library:create( "UIListLayout" , {
                     FillDirection = library.is_mobile and Enum.FillDirection.Vertical or Enum.FillDirection.Horizontal;
@@ -1424,7 +1425,6 @@ end
                 Size = dim2(1, -2, 1, -2);
                 BorderSizePixel = 0;
                 BackgroundColor3 = rgb(22, 22, 24),
-                ClipsDescendants = false,
                 AutomaticSize = library.is_mobile and Enum.AutomaticSize.Y or Enum.AutomaticSize.None
             });
             
@@ -1440,13 +1440,13 @@ end
                 ScrollBarThickness = not library.is_mobile and 2 or nil;
                 Parent = items[ "inline" ];
                 Name = "\0";
-                Size = dim2(1, -10, 1, -35);
+                Size = dim2(1, -10, 1, -40);
                 BackgroundTransparency = 1;
-                Position = dim2(0, 5, 0, 40);
+                Position = dim2(0, 5, 0, 35);
                 BackgroundColor3 = rgb(255, 255, 255);
                 BorderColor3 = rgb(0, 0, 0);
                 BorderSizePixel = 0;
-                ClipsDescendants = false;
+                ClipsDescendants = true;
                 ScrollingDirection = not library.is_mobile and Enum.ScrollingDirection.Y or nil;
                 ScrollingEnabled = not library.is_mobile and true or nil;
                 ElasticBehavior = not library.is_mobile and Enum.ElasticBehavior.Always or nil
@@ -1466,7 +1466,7 @@ end
             
             library:create( "UIListLayout" , {
                 Parent = items[ "elements" ];
-                Padding = dim(0, library.is_mobile and 8 or 12);
+                Padding = dim(0, library.is_mobile and 4 or 10);
                 SortOrder = Enum.SortOrder.LayoutOrder
             });
             
@@ -1493,7 +1493,7 @@ end
                 Parent = items[ "outline" ];
                 Name = "\0";
                 Position = dim2(0, 1, 0, 1);
-                Size = dim2(1, -2, 0, 40);
+                Size = dim2(1, -2, 0, 35);
                 BorderSizePixel = 0;
                 TextSize = 16;
                 BackgroundColor3 = rgb(19, 19, 21)
@@ -1641,28 +1641,22 @@ end
 
             local function recompute_section_height()
                 if library.is_mobile then
-                    local contentHeight = items[ "elements" ].AbsoluteSize.Y + PADDING_BOTTOM
-                    local totalDesired = HEADER_HEIGHT + contentHeight + 2
-                    local maxMobile = math.floor(camera.ViewportSize.Y * 0.75)
-                    local minMobile = 180
-                    if totalDesired <= maxMobile then
-                        items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
-                        items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
-                    else
-                        items[ "outline" ].AutomaticSize = Enum.AutomaticSize.None
-                        items[ "inline" ].AutomaticSize = Enum.AutomaticSize.None
-                        local clamped = math.max(minMobile, math.min(totalDesired, maxMobile))
-                        items[ "outline" ].Size = dim2(0, 0, 0, clamped)
-                        items[ "inline" ].Size = dim2(1, -2, 1, -2)
-                    end
+                    items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
+                    items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
                     if items[ "scrolling" ].ClassName == "ScrollingFrame" then
                         items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
                     end
-                    items[ "scrolling" ].Size = dim2(1, -5, 1, -HEADER_HEIGHT)
+                    items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
                 else
-                    items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
-                    items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
-                    items[ "scrolling" ].Size = dim2(1, -5, 1, -HEADER_HEIGHT)
+                    local contentHeight = items[ "elements" ].AbsoluteSize.Y + PADDING_BOTTOM
+                    local desired = HEADER_HEIGHT + contentHeight + 2
+                    local current = items[ "outline" ].Size.Y.Offset
+                    local newHeight = math.max(MIN_SECTION_HEIGHT, desired)
+                    if current ~= newHeight then
+                        items[ "outline" ].Size = dim2(0, 0, 0, newHeight)
+                        items[ "inline" ].Size = dim2(1, -2, 1, -2)
+                        items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
+                    end
                 end
             end
 
