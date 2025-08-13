@@ -1440,13 +1440,13 @@ end
                 ScrollBarThickness = not library.is_mobile and 2 or nil;
                 Parent = items[ "inline" ];
                 Name = "\0";
-                Size = dim2(1, -10, 1, -40);
+                Size = dim2(1, -10, 1, -35);
                 BackgroundTransparency = 1;
-                Position = dim2(0, 5, 0, 35);
+                Position = dim2(0, 5, 0, 40);
                 BackgroundColor3 = rgb(255, 255, 255);
                 BorderColor3 = rgb(0, 0, 0);
                 BorderSizePixel = 0;
-                ClipsDescendants = true;
+                ClipsDescendants = false;
                 ScrollingDirection = not library.is_mobile and Enum.ScrollingDirection.Y or nil;
                 ScrollingEnabled = not library.is_mobile and true or nil;
                 ElasticBehavior = not library.is_mobile and Enum.ElasticBehavior.Always or nil
@@ -1658,11 +1658,11 @@ end
                     if items[ "scrolling" ].ClassName == "ScrollingFrame" then
                         items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
                     end
-                    items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
+                    items[ "scrolling" ].Size = dim2(1, -5, 1, -HEADER_HEIGHT)
                 else
                     items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
                     items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
-                    items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
+                    items[ "scrolling" ].Size = dim2(1, -5, 1, -HEADER_HEIGHT)
                 end
             end
 
