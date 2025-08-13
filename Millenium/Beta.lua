@@ -1255,8 +1255,8 @@ end
             
             items[ "tab_holder" ].Visible = true 
             items[ "tab_holder" ].Parent = self.items[ "main" ]
-            items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
-            items[ "tab_holder" ].CanvasSize = dim2(0,0,0,0)
+            items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.None
+            items[ "tab_holder" ].CanvasSize = dim2(0,0,0,5000)
             items[ "tab_holder" ].ScrollBarThickness = library.is_mobile and 6 or 3
             items[ "tab_holder" ].ScrollingEnabled = true
             items[ "tab_holder" ].Active = true
