@@ -1702,10 +1702,9 @@ end
             local PADDING_BOTTOM = 15
 
             local function recompute_section_height()
-                local layout = items[ "elements" ]:FindFirstChildWhichIsA("UIListLayout")
-                local contentHeight = (layout and layout.AbsoluteContentSize.Y or items[ "elements" ].AbsoluteSize.Y) + PADDING_BOTTOM
                 if library.is_mobile then
-                    local totalDesired = HEADER_HEIGHT + contentHeight + 8
+                    local contentHeight = items[ "elements" ].AbsoluteSize.Y + PADDING_BOTTOM
+                    local totalDesired = HEADER_HEIGHT + contentHeight + 2
                     local maxMobile = math.floor(camera.ViewportSize.Y * 0.7)
                     local minMobile = 180
                     if totalDesired <= maxMobile then
@@ -1721,9 +1720,10 @@ end
                         items[ "inline" ].Size = dim2(1, -2, 1, -2)
                     end
                     items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
-                    items[ "scrolling" ].Size = dim2(1, 0, 1, -(HEADER_HEIGHT + 8))
+                    items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
                 else
-                    local desired = HEADER_HEIGHT + contentHeight + 8
+                    local contentHeight = items[ "elements" ].AbsoluteSize.Y + PADDING_BOTTOM
+                    local desired = HEADER_HEIGHT + contentHeight + 2
                     local current = items[ "outline" ].Size.Y.Offset
                     local newHeight = math.max(MIN_SECTION_HEIGHT, desired)
                     if current ~= newHeight then
@@ -1732,7 +1732,7 @@ end
                         items[ "outline" ].Size = dim2(0, 0, 0, newHeight)
                         items[ "inline" ].Size = dim2(1, -2, 1, -2)
                         items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
-                        items[ "scrolling" ].Size = dim2(1, 0, 1, -(HEADER_HEIGHT + 8))
+                        items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
                     end
                 end
             end
@@ -1748,10 +1748,6 @@ end
                 library:connection(node.ChildRemoved, recompute_section_height)
                 for _, ch in node:GetDescendants() do
                     if ch:IsA("GuiObject") then bind_resize_watch(ch) end
-                end
-                local lo = node:FindFirstChildWhichIsA("UIListLayout")
-                if lo then
-                    library:connection(lo:GetPropertyChangedSignal("AbsoluteContentSize"), recompute_section_height)
                 end
             end
 
