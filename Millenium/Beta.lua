@@ -598,7 +598,7 @@ end
                 AutomaticCanvasSize = Enum.AutomaticSize.Y;
                 CanvasSize = dim2(0,0,0,0);
                 ScrollingDirection = Enum.ScrollingDirection.Y;
-                ClipsDescendants = true;
+                ClipsDescendants = false;
                 Active = true;
                 ScrollBarImageColor3 = themes.preset.accent;
                 ScrollingEnabled = true
@@ -1424,6 +1424,7 @@ end
                 Size = dim2(1, -2, 1, -2);
                 BorderSizePixel = 0;
                 BackgroundColor3 = rgb(22, 22, 24),
+                ClipsDescendants = false,
                 AutomaticSize = library.is_mobile and Enum.AutomaticSize.Y or Enum.AutomaticSize.None
             });
             
@@ -1465,7 +1466,7 @@ end
             
             library:create( "UIListLayout" , {
                 Parent = items[ "elements" ];
-                Padding = dim(0, library.is_mobile and 4 or 10);
+                Padding = dim(0, library.is_mobile and 8 or 12);
                 SortOrder = Enum.SortOrder.LayoutOrder
             });
             
@@ -1492,7 +1493,7 @@ end
                 Parent = items[ "outline" ];
                 Name = "\0";
                 Position = dim2(0, 1, 0, 1);
-                Size = dim2(1, -2, 0, 35);
+                Size = dim2(1, -2, 0, 40);
                 BorderSizePixel = 0;
                 TextSize = 16;
                 BackgroundColor3 = rgb(19, 19, 21)
