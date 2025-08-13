@@ -1259,7 +1259,8 @@ end
             items[ "tab_holder" ].CanvasSize = dim2(0,0,0,0)
             items[ "tab_holder" ].ScrollBarThickness = library.is_mobile and 6 or 3
             items[ "tab_holder" ].ScrollingEnabled = true
-            items[ "tab_holder" ].ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
+            items[ "tab_holder" ].Active = true
+            items[ "tab_holder" ].ElasticBehavior = Enum.ElasticBehavior.Always
             items[ "multi_section_button_holder" ].Visible = true 
             items[ "multi_section_button_holder" ].Parent = self.items[ "multi_holder" ]
 
@@ -1639,10 +1640,9 @@ end
             local PADDING_BOTTOM = 15
 
             local function recompute_section_height()
-                local contentHeight = items[ "elements" ].AbsoluteContentSize and items[ "elements" ].AbsoluteContentSize.Y or items[ "elements" ].AbsoluteSize.Y
-                local totalHeight = HEADER_HEIGHT + contentHeight + PADDING_BOTTOM + 4
-                items[ "outline" ].Size = dim2(1, 0, 0, math.max(MIN_SECTION_HEIGHT, totalHeight))
-                items[ "inline" ].Size = dim2(1, -2, 1, -2)
+                items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
+                items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
+                items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
                 items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
             end
 
