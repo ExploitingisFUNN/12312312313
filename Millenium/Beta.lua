@@ -1260,6 +1260,8 @@ end
             items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
             items[ "tab_holder" ].CanvasSize = dim2(0,0,0,0)
             items[ "tab_holder" ].ScrollBarThickness = library.is_mobile and 6 or 3
+            items[ "tab_holder" ].ScrollingEnabled = true
+            items[ "tab_holder" ].ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
             items[ "multi_section_button_holder" ].Visible = true 
             items[ "multi_section_button_holder" ].Parent = self.items[ "multi_holder" ]
 
