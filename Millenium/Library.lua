@@ -746,6 +746,41 @@ end
                 TextSize = 14;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
+
+            local ResizeButton = library:create("TextButton", {
+                AnchorPoint = vec2(1, 0), BackgroundTransparency = 1, Text = "",
+                Position = dim2(1, 0, 0, 0), Size = dim2(0, 36, 1, 0),
+                SizeConstraint = Enum.SizeConstraint.RelativeYY, Parent = items["info"], Name = "\0",
+            })
+
+            local Grip = library:create("ImageLabel", {
+                Image = "rbxassetid://112971167999062", ImageTransparency = 0.5,
+                BackgroundTransparency = 1, Position = dim2(0, 2, 0, 2), Size = dim2(1, -4, 1, -4),
+                Parent = ResizeButton, Name = "\0",
+            })
+
+            local dragging, startPos, startSize
+            ResizeButton.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    startPos = input.Position
+                    startSize = items["main"].Size
+                end
+            end)
+            library:connection(uis.InputEnded, function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
+                end
+            end)
+            library:connection(uis.InputChanged, function(input)
+                if not dragging then return end
+                if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
+                local delta = input.Position - startPos
+                local minW, minH = 420, 300
+                local newW = math.max(minW, startSize.X.Offset + delta.X)
+                local newH = math.max(minH, startSize.Y.Offset + delta.Y)
+                items["main"].Size = dim2(0, newW, 0, newH)
+            end)
         end 
 
         do
@@ -772,7 +807,42 @@ end
                 ZIndex = 1000;
             })
             library:create( "UICorner" , { Parent = toggleButton; CornerRadius = dim(0, 6) })
-            library:draggify(toggleButton, true)
+            do
+                local dragging = false
+                local startPos
+                local startOffset
+                toggleButton.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = true
+                        startPos = input.Position
+                        startOffset = toggleButton.Position
+                    end
+                end)
+                toggleButton.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
+                library:connection(uis.InputChanged, function(input)
+                    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                        local delta = input.Position - startPos
+                        local viewport = camera.ViewportSize
+                        local size = toggleButton.AbsoluteSize
+                        local anchor = toggleButton.AnchorPoint
+                        local desiredFinalX = startOffset.X.Scale * viewport.X + startOffset.X.Offset + delta.X
+                        local desiredFinalY = startOffset.Y.Scale * viewport.Y + startOffset.Y.Offset + delta.Y
+                        local minFinalX = 10 + anchor.X * size.X
+                        local maxFinalX = viewport.X - 10 - (1 - anchor.X) * size.X
+                        local minFinalY = 10 + anchor.Y * size.Y
+                        local maxFinalY = viewport.Y - 10 - (1 - anchor.Y) * size.Y
+                        local clampedFinalX = math.clamp(desiredFinalX, minFinalX, maxFinalX)
+                        local clampedFinalY = math.clamp(desiredFinalY, minFinalY, maxFinalY)
+                        local newOffsetX = clampedFinalX - startOffset.X.Scale * viewport.X
+                        local newOffsetY = clampedFinalY - startOffset.Y.Scale * viewport.Y
+                        toggleButton.Position = dim2(startOffset.X.Scale, newOffsetX, startOffset.Y.Scale, newOffsetY)
+                    end
+                end)
+            end
             toggleButton.MouseButton1Click:Connect(function()
                 cfg.toggle_menu(not library[ "items" ].Enabled)
             end)
@@ -791,7 +861,42 @@ end
                 ZIndex = 1000;
             })
             library:create( "UICorner" , { Parent = lockButton; CornerRadius = dim(0, 6) })
-            library:draggify(lockButton, true)
+            do
+                local dragging = false
+                local startPos
+                local startOffset
+                lockButton.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = true
+                        startPos = input.Position
+                        startOffset = lockButton.Position
+                    end
+                end)
+                lockButton.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
+                library:connection(uis.InputChanged, function(input)
+                    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                        local delta = input.Position - startPos
+                        local viewport = camera.ViewportSize
+                        local size = lockButton.AbsoluteSize
+                        local anchor = lockButton.AnchorPoint
+                        local desiredFinalX = startOffset.X.Scale * viewport.X + startOffset.X.Offset + delta.X
+                        local desiredFinalY = startOffset.Y.Scale * viewport.Y + startOffset.Y.Offset + delta.Y
+                        local minFinalX = 10 + anchor.X * size.X
+                        local maxFinalX = viewport.X - 10 - (1 - anchor.X) * size.X
+                        local minFinalY = 10 + anchor.Y * size.Y
+                        local maxFinalY = viewport.Y - 10 - (1 - anchor.Y) * size.Y
+                        local clampedFinalX = math.clamp(desiredFinalX, minFinalX, maxFinalX)
+                        local clampedFinalY = math.clamp(desiredFinalY, minFinalY, maxFinalY)
+                        local newOffsetX = clampedFinalX - startOffset.X.Scale * viewport.X
+                        local newOffsetY = clampedFinalY - startOffset.Y.Scale * viewport.Y
+                        lockButton.Position = dim2(startOffset.X.Scale, newOffsetX, startOffset.Y.Scale, newOffsetY)
+                    end
+                end)
+            end
             local function updateLockText()
                 lockButton.Text = library.cant_drag_forced and "Unlock" or "Lock"
             end
@@ -847,13 +952,11 @@ end
                 Active = true;
                 ScrollBarThickness = library.is_mobile and 8 or 3;
                 ScrollingDirection = Enum.ScrollingDirection.Y;
-                AutomaticCanvasSize = library.is_mobile and Enum.AutomaticSize.None or Enum.AutomaticSize.Y;
-                CanvasSize = library.is_mobile and dim2(0,0,0,3000) or dim2(0,0,0,0);
+                AutomaticCanvasSize = Enum.AutomaticSize.Y;
+                CanvasSize = dim2(0,0,0,0);
                 ElasticBehavior = Enum.ElasticBehavior.Always;
                 ScrollingEnabled = true;
                 ScrollBarImageColor3 = themes.preset.accent;
-                ScrollingEnabled = true;
-                ElasticBehavior = Enum.ElasticBehavior.Always;
                 VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
             }); library:apply_theme(items[ "tab_holder" ], "accent", "ScrollBarImageColor3");
 
@@ -1152,13 +1255,12 @@ end
             
             items[ "tab_holder" ].Visible = true 
             items[ "tab_holder" ].Parent = self.items[ "main" ]
-            -- Set proper canvas size for mobile to ensure all content is visible
-            if library.is_mobile then
-                items[ "tab_holder" ].CanvasSize = dim2(0,0,0, 3000)
-                items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.None
-            else
-                items[ "tab_holder" ].CanvasSize = dim2(0,0,0, 1000)
-            end
+            items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.None
+            items[ "tab_holder" ].CanvasSize = dim2(0,0,0,5000)
+            items[ "tab_holder" ].ScrollBarThickness = library.is_mobile and 6 or 3
+            items[ "tab_holder" ].ScrollingEnabled = true
+            items[ "tab_holder" ].Active = true
+            items[ "tab_holder" ].ElasticBehavior = Enum.ElasticBehavior.Always
             items[ "multi_section_button_holder" ].Visible = true 
             items[ "multi_section_button_holder" ].Parent = self.items[ "multi_holder" ]
 
@@ -1264,15 +1366,14 @@ end
                     BackgroundColor3 = rgb(255, 255, 255)
                 }
                 
-                if library.is_mobile then
-                    properties.ScrollBarThickness = 6
-                    properties.AutomaticCanvasSize = Enum.AutomaticSize.Y
-                    properties.CanvasSize = dim2(0,0,0,0)
-                    properties.ScrollingDirection = Enum.ScrollingDirection.Y
-                    items[ "tab_parent" ] = library:create("ScrollingFrame", properties)
-                else
-                    items[ "tab_parent" ] = library:create("Frame", properties)
-                end
+                properties.ScrollBarThickness = library.is_mobile and 6 or 3
+                properties.AutomaticCanvasSize = Enum.AutomaticSize.Y
+                properties.CanvasSize = dim2(0,0,0,0)
+                properties.ScrollingDirection = Enum.ScrollingDirection.Y
+                properties.ScrollingEnabled = true
+                properties.Active = true
+                properties.BackgroundTransparency = library.is_mobile and 0.95 or 1
+                items[ "tab_parent" ] = library:create("ScrollingFrame", properties)
                 
                 library:create( "UIListLayout" , {
                     FillDirection = library.is_mobile and Enum.FillDirection.Vertical or Enum.FillDirection.Horizontal;
@@ -1539,24 +1640,10 @@ end
             local PADDING_BOTTOM = 15
 
             local function recompute_section_height()
-                if library.is_mobile then
-                    items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
-                    items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
-                    if items[ "scrolling" ].ClassName == "ScrollingFrame" then
-                        items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
-                    end
-                    items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
-                else
-                    local contentHeight = items[ "elements" ].AbsoluteSize.Y + PADDING_BOTTOM
-                    local desired = HEADER_HEIGHT + contentHeight + 2
-                    local current = items[ "outline" ].Size.Y.Offset
-                    local newHeight = math.max(MIN_SECTION_HEIGHT, desired)
-                    if current ~= newHeight then
-                        items[ "outline" ].Size = dim2(0, 0, 0, newHeight)
-                        items[ "inline" ].Size = dim2(1, -2, 1, -2)
-                        items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
-                    end
-                end
+                items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
+                items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
+                items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+                items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
             end
 
             local function bind_resize_watch(node)
