@@ -1159,19 +1159,12 @@ end
                             });
 
                             library:create( "UIListLayout" , {
+                                FillDirection = library.is_mobile and Enum.FillDirection.Vertical or Enum.FillDirection.Horizontal;
+                                HorizontalFlex = not library.is_mobile and Enum.UIFlexAlignment.Fill or nil;
                                 Parent = multi_items[ "tab" ];
-                                Padding = dim(0, library.is_mobile and 14 or 7);
+                                Padding = dim(0, library.is_mobile and 8 or 7);
                                 SortOrder = Enum.SortOrder.LayoutOrder;
-                                FillDirection = Enum.FillDirection.Vertical
-                            });
-                            
-                            library:create( "UIListLayout" , {
-                                FillDirection = Enum.FillDirection.Vertical;
-                                HorizontalFlex = Enum.UIFlexAlignment.Fill;
-                                Parent = multi_items[ "tab" ];
-                                Padding = dim(0, library.is_mobile and 12 or 7);
-                                SortOrder = Enum.SortOrder.LayoutOrder;
-                                VerticalFlex = Enum.UIFlexAlignment.Fill
+                                VerticalFlex = not library.is_mobile and Enum.UIFlexAlignment.Fill or nil;
                             });
                             
                             library:create( "UIPadding" , {
@@ -1353,7 +1346,7 @@ end
                 library:create( "UIListLayout" , {
                     Parent = items[ "column" ];
                     HorizontalFlex = Enum.UIFlexAlignment.Fill;
-                    Padding = dim(0, library.is_mobile and 3 or 10);
+                    Padding = dim(0, library.is_mobile and 8 or 12);
                     FillDirection = Enum.FillDirection.Vertical;
                     SortOrder = Enum.SortOrder.LayoutOrder
                 });
@@ -1416,10 +1409,10 @@ end
                 Name = "\0";
                 Parent = self.items[ "column" ];
                 BorderColor3 = rgb(0, 0, 0);
-                Size = library.is_mobile and dim2(1, 0, 0, 0) or dim2(1, 0, cfg.size, -3);
+                Size = library.is_mobile and dim2(1, 0, 0, 0) or dim2(1, 0, 0, 0);
                 BorderSizePixel = 0;
                 BackgroundColor3 = rgb(25, 25, 29),
-                AutomaticSize = library.is_mobile and Enum.AutomaticSize.Y or Enum.AutomaticSize.None,
+                AutomaticSize = Enum.AutomaticSize.Y,
                 LayoutOrder = library.is_mobile and (cfg.order or 0) or nil
             });
 
@@ -1433,10 +1426,10 @@ end
                 Name = "\0";
                 Position = dim2(0, 1, 0, 1);
                 BorderColor3 = rgb(0, 0, 0);
-                Size = dim2(1, -2, 1, -2);
+                Size = dim2(1, -2, 0, 0);
                 BorderSizePixel = 0;
                 BackgroundColor3 = rgb(22, 22, 24),
-                AutomaticSize = library.is_mobile and Enum.AutomaticSize.Y or Enum.AutomaticSize.None
+                AutomaticSize = Enum.AutomaticSize.Y
             });
             
             library:create( "UICorner" , {
@@ -1451,7 +1444,7 @@ end
                 ScrollBarThickness = not library.is_mobile and 2 or nil;
                 Parent = items[ "inline" ];
                 Name = "\0";
-                Size = dim2(1, -10, 1, -40);
+                Size = library.is_mobile and dim2(1, -10, 0, 0) or dim2(1, -10, 0, 150);
                 BackgroundTransparency = 1;
                 Position = dim2(0, 5, 0, 35);
                 BackgroundColor3 = rgb(255, 255, 255);
@@ -1460,7 +1453,8 @@ end
                 ClipsDescendants = true;
                 ScrollingDirection = not library.is_mobile and Enum.ScrollingDirection.Y or nil;
                 ScrollingEnabled = not library.is_mobile and true or nil;
-                ElasticBehavior = not library.is_mobile and Enum.ElasticBehavior.Always or nil
+                ElasticBehavior = not library.is_mobile and Enum.ElasticBehavior.Always or nil;
+                AutomaticSize = library.is_mobile and Enum.AutomaticSize.Y or Enum.AutomaticSize.None
             }); if not library.is_mobile then library:apply_theme(items[ "scrolling" ], "accent", "ScrollBarImageColor3"); end
             
             items[ "elements" ] = library:create( "Frame" , {
@@ -1477,12 +1471,11 @@ end
             
             library:create( "UIListLayout" , {
                 Parent = items[ "elements" ];
-                Padding = dim(0, library.is_mobile and 4 or 10);
+                Padding = dim(0, library.is_mobile and 6 or 8);
                 SortOrder = Enum.SortOrder.LayoutOrder
             });
             
             if library.is_mobile then
-                -- minimal padding on mobile
             else
                 library:create( "UIPadding" , {
                     PaddingBottom = dim(0, 15);
@@ -1491,7 +1484,7 @@ end
             end
             
             library:create( "UIPadding" , {
-                PaddingBottom = dim(0, library.is_mobile and 8 or 15);
+                PaddingBottom = dim(0, library.is_mobile and 10 or 12);
                 Parent = items[ "elements" ]
             });
             
@@ -1645,37 +1638,7 @@ end
             end 
         end;
 
-        do
-            local MIN_SECTION_HEIGHT = 140
-            local HEADER_HEIGHT = 35
-            local PADDING_BOTTOM = 15
 
-            local function recompute_section_height()
-                items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
-                items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
-                items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
-                items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
-            end
-
-            local function bind_resize_watch(node)
-                if not node then return end
-                library:connection(node:GetPropertyChangedSignal("AbsoluteSize"), recompute_section_height)
-                library:connection(node:GetPropertyChangedSignal("Visible"), recompute_section_height)
-                library:connection(node.ChildAdded, function(child)
-                    bind_resize_watch(child)
-                    recompute_section_height()
-                end)
-                library:connection(node.ChildRemoved, recompute_section_height)
-                for _, ch in node:GetDescendants() do
-                    if ch:IsA("GuiObject") then bind_resize_watch(ch) end
-                end
-            end
-
-            task.defer(function()
-                bind_resize_watch(items[ "elements" ])
-                recompute_section_height()
-            end)
-        end
 
         if cfg.fading_toggle then
             items[ "button" ].MouseButton1Click:Connect(function()
