@@ -1656,7 +1656,9 @@ end
 
                 local function bind_mobile_resize(node)
                     if not node then return end
-                    library:connection(node:GetPropertyChangedSignal("AbsoluteSize"), recompute_mobile_section)
+                    if node:IsA("GuiObject") then
+                        library:connection(node:GetPropertyChangedSignal("AbsoluteSize"), recompute_mobile_section)
+                    end
                     library:connection(node.ChildAdded, function(child)
                         task.wait()
                         recompute_mobile_section()
@@ -1684,8 +1686,10 @@ end
 
                 local function bind_resize_watch(node)
                     if not node then return end
-                    library:connection(node:GetPropertyChangedSignal("AbsoluteSize"), recompute_section_height)
-                    library:connection(node:GetPropertyChangedSignal("Visible"), recompute_section_height)
+                    if node:IsA("GuiObject") then
+                        library:connection(node:GetPropertyChangedSignal("AbsoluteSize"), recompute_section_height)
+                        library:connection(node:GetPropertyChangedSignal("Visible"), recompute_section_height)
+                    end
                     library:connection(node.ChildAdded, function(child)
                         bind_resize_watch(child)
                         recompute_section_height()
