@@ -1345,15 +1345,15 @@ end
                 });
                 
                 library:create( "UIPadding" , {
-                    PaddingBottom = library.is_mobile and dim(0, 2) or dim(0, 10);
-                    PaddingTop = library.is_mobile and dim(0, 2) or dim(0, 0);
+                    PaddingBottom = library.is_mobile and dim(0, 5) or dim(0, 10);
+                    PaddingTop = library.is_mobile and dim(0, 5) or dim(0, 0);
                     Parent = items[ "column" ]
                 });
                 
                 library:create( "UIListLayout" , {
                     Parent = items[ "column" ];
                     HorizontalFlex = Enum.UIFlexAlignment.Fill;
-                    Padding = dim(0, library.is_mobile and 3 or 10);
+                    Padding = dim(0, library.is_mobile and 8 or 10);
                     FillDirection = Enum.FillDirection.Vertical;
                     SortOrder = Enum.SortOrder.LayoutOrder
                 });
@@ -1451,7 +1451,7 @@ end
                 ScrollBarThickness = not library.is_mobile and 2 or nil;
                 Parent = items[ "inline" ];
                 Name = "\0";
-                Size = dim2(1, -10, 1, -40);
+                Size = library.is_mobile and dim2(1, -10, 0, 0) or dim2(1, -10, 1, -40);
                 BackgroundTransparency = 1;
                 Position = dim2(0, 5, 0, 35);
                 BackgroundColor3 = rgb(255, 255, 255);
@@ -1460,7 +1460,8 @@ end
                 ClipsDescendants = true;
                 ScrollingDirection = not library.is_mobile and Enum.ScrollingDirection.Y or nil;
                 ScrollingEnabled = not library.is_mobile and true or nil;
-                ElasticBehavior = not library.is_mobile and Enum.ElasticBehavior.Always or nil
+                ElasticBehavior = not library.is_mobile and Enum.ElasticBehavior.Always or nil;
+                AutomaticSize = library.is_mobile and Enum.AutomaticSize.Y or nil
             }); if not library.is_mobile then library:apply_theme(items[ "scrolling" ], "accent", "ScrollBarImageColor3"); end
             
             items[ "elements" ] = library:create( "Frame" , {
@@ -1482,18 +1483,17 @@ end
             });
             
             if library.is_mobile then
-                -- minimal padding on mobile
+                library:create( "UIPadding" , {
+                    PaddingBottom = dim(0, 8);
+                    PaddingTop = dim(0, 5);
+                    Parent = items[ "elements" ]
+                });
             else
                 library:create( "UIPadding" , {
                     PaddingBottom = dim(0, 15);
                     Parent = items[ "elements" ]
                 });
             end
-            
-            library:create( "UIPadding" , {
-                PaddingBottom = dim(0, library.is_mobile and 8 or 15);
-                Parent = items[ "elements" ]
-            });
             
             items[ "button" ] = library:create( "TextButton" , {
                 FontFace = fonts.font;
@@ -1646,35 +1646,65 @@ end
         end;
 
         do
-            local MIN_SECTION_HEIGHT = 140
-            local HEADER_HEIGHT = 35
-            local PADDING_BOTTOM = 15
+            if library.is_mobile then
+                local function recompute_mobile_section()
+                    items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
+                    items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
+                    items[ "scrolling" ].Size = dim2(1, -10, 0, 0)
+                    items[ "scrolling" ].AutomaticSize = Enum.AutomaticSize.Y
+                end
 
-            local function recompute_section_height()
-                items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
-                items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
-                items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
-                items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
-            end
+                local function bind_mobile_resize(node)
+                    if not node then return end
+                    if node:IsA("GuiObject") then
+                        library:connection(node:GetPropertyChangedSignal("AbsoluteSize"), recompute_mobile_section)
+                    end
+                    library:connection(node.ChildAdded, function(child)
+                        task.wait()
+                        recompute_mobile_section()
+                    end)
+                    library:connection(node.ChildRemoved, function()
+                        task.wait()
+                        recompute_mobile_section()
+                    end)
+                end
 
-            local function bind_resize_watch(node)
-                if not node then return end
-                library:connection(node:GetPropertyChangedSignal("AbsoluteSize"), recompute_section_height)
-                library:connection(node:GetPropertyChangedSignal("Visible"), recompute_section_height)
-                library:connection(node.ChildAdded, function(child)
-                    bind_resize_watch(child)
+                task.defer(function()
+                    bind_mobile_resize(items[ "elements" ])
+                    recompute_mobile_section()
+                end)
+            else
+                local MIN_SECTION_HEIGHT = 140
+                local HEADER_HEIGHT = 35
+
+                local function recompute_section_height()
+                    items[ "outline" ].AutomaticSize = Enum.AutomaticSize.Y
+                    items[ "inline" ].AutomaticSize = Enum.AutomaticSize.Y
+                    items[ "scrolling" ].AutomaticCanvasSize = Enum.AutomaticSize.Y
+                    items[ "scrolling" ].Size = dim2(1, 0, 1, -HEADER_HEIGHT)
+                end
+
+                local function bind_resize_watch(node)
+                    if not node then return end
+                    if node:IsA("GuiObject") then
+                        library:connection(node:GetPropertyChangedSignal("AbsoluteSize"), recompute_section_height)
+                        library:connection(node:GetPropertyChangedSignal("Visible"), recompute_section_height)
+                    end
+                    library:connection(node.ChildAdded, function(child)
+                        bind_resize_watch(child)
+                        recompute_section_height()
+                    end)
+                    library:connection(node.ChildRemoved, recompute_section_height)
+                    for _, ch in node:GetDescendants() do
+                        if ch:IsA("GuiObject") then bind_resize_watch(ch) end
+                    end
+                end
+
+                task.defer(function()
+                    bind_resize_watch(items[ "elements" ])
                     recompute_section_height()
                 end)
-                library:connection(node.ChildRemoved, recompute_section_height)
-                for _, ch in node:GetDescendants() do
-                    if ch:IsA("GuiObject") then bind_resize_watch(ch) end
-                end
             end
-
-            task.defer(function()
-                bind_resize_watch(items[ "elements" ])
-                recompute_section_height()
-            end)
         end
 
         if cfg.fading_toggle then
