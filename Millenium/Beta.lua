@@ -160,7 +160,18 @@ local flags = library.flags
 local config_flags = library.config_flags
 local notifications = library.notifications 
 
-library.is_mobile = uis.TouchEnabled and not uis.MouseEnabled
+if run:IsStudio() then
+    if uis.TouchEnabled and not uis.MouseEnabled then
+        library.is_mobile = true
+    else
+        library.is_mobile = false
+    end
+else
+    pcall(function()
+        library.device_platform = uis:GetPlatform()
+    end)
+    library.is_mobile = (library.device_platform == Enum.Platform.Android or library.device_platform == Enum.Platform.IOS)
+end
 library.cant_drag_forced = false
 
 local fonts = {}; do
