@@ -3899,21 +3899,48 @@ end
     end 
 
     function library:init_config(window) 
-        -- removed Settings separator
-        local main = window:tab({name = "Configs", tabs = {"Main"}})
+        local hasAddons = pcall(function() 
+            return readfile("Millenium/addons/ThemeManager.lua") and readfile("Millenium/addons/SaveManager.lua") 
+        end)
         
-        local column = main:column({})
-        local section = column:section({name = "Configs", size = 1, default = true, icon = "rbxassetid://139628202576511"})
-        config_holder = section:list({options = {"Report", "This", "Error", "To", "Finobe"}, callback = function(option) end, flag = "config_name_list"}); library:update_config_list()
-        
-        local column = main:column({})
-        -- removed Settings section
-        section:textbox({name = "Config name:", flag = "config_name_text"})
-        section:button({name = "Save", callback = function() writefile(library.directory .. "/configs/" .. flags["config_name_text"] or flags["config_name_list"] .. ".cfg", library:get_config()) library:update_config_list() notifications:create_notification({name = "Configs", info = "Saved config to:\n" .. flags["config_name_list"] or flags["config_name_text"]}) end}) 
-        section:button({name = "Load", callback = function() library:load_config(readfile(library.directory .. "/configs/" .. flags["config_name_list"] .. ".cfg"))  library:update_config_list() notifications:create_notification({name = "Configs", info = "Loaded config:\n" .. flags["config_name_list"]}) end})
-        section:button({name = "Delete", callback = function() delfile(library.directory .. "/configs/" .. flags["config_name_list"] .. ".cfg")  library:update_config_list() notifications:create_notification({name = "Configs", info = "Deleted config:\n" .. flags["config_name_list"]}) end})
-        section:colorpicker({name = "Menu Accent", callback = function(color, alpha) library:update_theme("accent", color) end, color = themes.preset.accent})
-        section:keybind({name = "Menu Bind", callback = function(bool) window.toggle_menu(bool) end, default = true})
+        if hasAddons then
+            local ThemeManager = loadstring(readfile("Millenium/addons/ThemeManager.lua"))()
+            local SaveManager = loadstring(readfile("Millenium/addons/SaveManager.lua"))()
+            
+            ThemeManager:SetLibrary(library)
+            SaveManager:SetLibrary(library)
+            
+            ThemeManager:SetFolder("MilleniumThemes")
+            SaveManager:SetFolder("MilleniumConfigs")
+            
+            SaveManager:IgnoreThemeSettings()
+            
+            ThemeManager:SetupThemeManager(window)
+            SaveManager:SetupSaveManager(window)
+            
+            SaveManager:LoadAutoloadConfig()
+            
+            return {
+                ThemeManager = ThemeManager,
+                SaveManager = SaveManager
+            }
+        else
+            local main = window:tab({name = "Configs", tabs = {"Main"}})
+            
+            local column = main:column({})
+            local section = column:section({name = "Configs", size = 1, default = true, icon = "rbxassetid://139628202576511"})
+            config_holder = section:list({options = {"Report", "This", "Error", "To", "Finobe"}, callback = function(option) end, flag = "config_name_list"}); library:update_config_list()
+            
+            local column = main:column({})
+            section:textbox({name = "Config name:", flag = "config_name_text"})
+            section:button({name = "Save", callback = function() writefile(library.directory .. "/configs/" .. flags["config_name_text"] or flags["config_name_list"] .. ".cfg", library:get_config()) library:update_config_list() notifications:create_notification({name = "Configs", info = "Saved config to:\n" .. flags["config_name_list"] or flags["config_name_text"]}) end}) 
+            section:button({name = "Load", callback = function() library:load_config(readfile(library.directory .. "/configs/" .. flags["config_name_list"] .. ".cfg"))  library:update_config_list() notifications:create_notification({name = "Configs", info = "Loaded config:\n" .. flags["config_name_list"]}) end})
+            section:button({name = "Delete", callback = function() delfile(library.directory .. "/configs/" .. flags["config_name_list"] .. ".cfg")  library:update_config_list() notifications:create_notification({name = "Configs", info = "Deleted config:\n" .. flags["config_name_list"]}) end})
+            section:colorpicker({name = "Menu Accent", callback = function(color, alpha) library:update_theme("accent", color) end, color = themes.preset.accent})
+            section:keybind({name = "Menu Bind", callback = function(bool) window.toggle_menu(bool) end, default = true})
+            
+            return {}
+        end
     end
 --
 
@@ -4075,5 +4102,24 @@ end
     end
 --
 -- 
+
+library.API = {
+    GetLibrary = function()
+        return library
+    end,
+    
+    LoadAddons = function()
+        local ThemeManager = loadstring(readfile("Millenium/addons/ThemeManager.lua"))()
+        local SaveManager = loadstring(readfile("Millenium/addons/SaveManager.lua"))()
+        
+        ThemeManager:SetLibrary(library)
+        SaveManager:SetLibrary(library)
+        
+        return {
+            ThemeManager = ThemeManager,
+            SaveManager = SaveManager
+        }
+    end
+}
 
 return library
