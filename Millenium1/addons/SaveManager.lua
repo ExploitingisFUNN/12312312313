@@ -388,11 +388,17 @@ local SaveManager = {} do
         return true, ""
     end
 
-    function SaveManager:SetupSaveManager(window)
+    function SaveManager:SetupSaveManager()
         assert(self.Library, "Must set SaveManager.Library first!")
 
         self:BuildFolderTree()
-
+        
+        if not self.Library or not self.Library.window then
+            return
+        end
+        
+        local window = self.Library.window
+        
         local configs = window:tab({name = "Save Manager", tabs = {"Configs"}})
         local column = configs:column({})
         local section = column:section({name = "Configuration", size = 1, default = true})

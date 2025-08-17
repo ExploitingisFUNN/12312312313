@@ -209,9 +209,15 @@ local ThemeManager = {} do
         return out
     end
 
-    function ThemeManager:SetupThemeManager(window)
+    function ThemeManager:SetupThemeManager()
         self:BuildFolderTree()
-
+        
+        if not self.Library or not self.Library.window then
+            return
+        end
+        
+        local window = self.Library.window
+        
         local configs = window:tab({name = "Theme Manager", tabs = {"Themes"}})
         local column = configs:column({})
         local section = column:section({name = "Theme Manager", size = 1, default = true})
