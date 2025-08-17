@@ -388,7 +388,7 @@ local SaveManager = {} do
         return true, ""
     end
 
-    function SaveManager:SetupSaveManager()
+    function SaveManager:SetupSaveManager(TabObj)
         assert(self.Library, "Must set SaveManager.Library first!")
 
         self:BuildFolderTree()
@@ -397,19 +397,25 @@ local SaveManager = {} do
             return
         end
         
-        if not self.Library.window then
-            if type(self.Library.CreateWindow) == "function" then
-                self.Library.window = self.Library:CreateWindow({Title = "Save Manager"})
-            else
-                return
+        local section
+        
+        if TabObj then
+            section = TabObj:AddLeftGroupbox("Configuration")
+        else
+            if not self.Library.window then
+                if type(self.Library.CreateWindow) == "function" then
+                    self.Library.window = self.Library:CreateWindow({Title = "Save Manager"})
+                else
+                    return
+                end
             end
+            
+            local window = self.Library.window
+            
+            local configs = window:tab({name = "Save Manager", tabs = {"Configs"}})
+            local column = configs:column({})
+            section = column:section({name = "Configuration", size = 1, default = true})
         end
-        
-        local window = self.Library.window
-        
-        local configs = window:tab({name = "Save Manager", tabs = {"Configs"}})
-        local column = configs:column({})
-        local section = column:section({name = "Configuration", size = 1, default = true})
 
         section:textbox({name = "Config Name", flag = "SaveManagerConfigName"})
 

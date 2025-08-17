@@ -209,26 +209,32 @@ local ThemeManager = {} do
         return out
     end
 
-    function ThemeManager:SetupThemeManager()
+    function ThemeManager:SetupThemeManager(TabObj)
         self:BuildFolderTree()
         
         if not self.Library then
             return
         end
+
+        local section
         
-        if not self.Library.window then
-            if type(self.Library.CreateWindow) == "function" then
-                self.Library.window = self.Library:CreateWindow({Title = "Theme Manager"})
-            else
-                return
+        if TabObj then
+            section = TabObj:AddRightGroupbox("Theme Manager")
+        else
+            if not self.Library.window then
+                if type(self.Library.CreateWindow) == "function" then
+                    self.Library.window = self.Library:CreateWindow({Title = "Theme Manager"})
+                else
+                    return
+                end
             end
+            
+            local window = self.Library.window
+            
+            local configs = window:tab({name = "Theme Manager", tabs = {"Themes"}})
+            local column = configs:column({})
+            section = column:section({name = "Theme Manager", size = 1, default = true})
         end
-        
-        local window = self.Library.window
-        
-        local configs = window:tab({name = "Theme Manager", tabs = {"Themes"}})
-        local column = configs:column({})
-        local section = column:section({name = "Theme Manager", size = 1, default = true})
 
         section:colorpicker({name = "Background Color", flag = "BackgroundColor", callback = function(color)
             self.Library:update_theme("background", color)
