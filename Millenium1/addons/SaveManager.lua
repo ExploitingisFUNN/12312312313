@@ -393,8 +393,16 @@ local SaveManager = {} do
 
         self:BuildFolderTree()
         
-        if not self.Library or not self.Library.window then
+        if not self.Library then
             return
+        end
+        
+        if not self.Library.window then
+            if type(self.Library.CreateWindow) == "function" then
+                self.Library.window = self.Library:CreateWindow({Title = "Save Manager"})
+            else
+                return
+            end
         end
         
         local window = self.Library.window

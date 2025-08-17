@@ -212,8 +212,16 @@ local ThemeManager = {} do
     function ThemeManager:SetupThemeManager()
         self:BuildFolderTree()
         
-        if not self.Library or not self.Library.window then
+        if not self.Library then
             return
+        end
+        
+        if not self.Library.window then
+            if type(self.Library.CreateWindow) == "function" then
+                self.Library.window = self.Library:CreateWindow({Title = "Theme Manager"})
+            else
+                return
+            end
         end
         
         local window = self.Library.window
@@ -224,23 +232,23 @@ local ThemeManager = {} do
 
         section:colorpicker({name = "Background Color", flag = "BackgroundColor", callback = function(color)
             self.Library:update_theme("background", color)
-        end, color = self.Library.themes.preset.background})
+        end, color = (self.Library.themes.preset and self.Library.themes.preset.background) or Color3.fromRGB(25, 25, 25)})
 
         section:colorpicker({name = "Main Color", flag = "MainColor", callback = function(color)
             self.Library:update_theme("main", color)
-        end, color = self.Library.themes.preset.main})
+        end, color = (self.Library.themes.preset and self.Library.themes.preset.main) or Color3.fromRGB(35, 35, 35)})
 
         section:colorpicker({name = "Accent Color", flag = "AccentColor", callback = function(color)
             self.Library:update_theme("accent", color)
-        end, color = self.Library.themes.preset.accent})
+        end, color = (self.Library.themes.preset and self.Library.themes.preset.accent) or Color3.fromRGB(0, 85, 255)})
 
         section:colorpicker({name = "Outline Color", flag = "OutlineColor", callback = function(color)
             self.Library:update_theme("outline", color)
-        end, color = self.Library.themes.preset.outline})
+        end, color = (self.Library.themes.preset and self.Library.themes.preset.outline) or Color3.fromRGB(0, 0, 0)})
 
         section:colorpicker({name = "Font Color", flag = "FontColor", callback = function(color)
             self.Library:update_theme("font", color)
-        end, color = self.Library.themes.preset.font})
+        end, color = (self.Library.themes.preset and self.Library.themes.preset.font) or Color3.fromRGB(255, 255, 255)})
 
         section:seperator({})
 
