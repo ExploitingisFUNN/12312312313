@@ -103,13 +103,21 @@ do
     end
 
     function ThemeManager:ThemeUpdate()
-        local options = self.Library.Options
+        local opts = self.Library and self.Library.Options or {}
+        local function pick(name, fallback)
+            local o = opts[name]
+            if o and o.Value and typeof(o.Value) == "Color3" then
+                return o.Value:ToHex()
+            end
+            return fallback
+        end
+
         local theme = {
-            FontColor = options.FontColor.Value:ToHex(),
-            MainColor = options.MainColor.Value:ToHex(),
-            AccentColor = options.AccentColor.Value:ToHex(),
-            BackgroundColor = options.BackgroundColor.Value:ToHex(),
-            OutlineColor = options.OutlineColor.Value:ToHex()
+            FontColor = pick("FontColor", "ffffff"),
+            MainColor = pick("MainColor", "191919"),
+            AccentColor = pick("AccentColor", "f0503d"),
+            BackgroundColor = pick("BackgroundColor", "0f0f0f"),
+            OutlineColor = pick("OutlineColor", "282828")
         }
 
         self:ApplyTheme(theme)
