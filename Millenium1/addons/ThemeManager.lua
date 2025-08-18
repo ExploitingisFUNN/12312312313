@@ -140,50 +140,50 @@ do
     end
 
     function ThemeManager:CreateThemeManager(groupbox)
-        groupbox:AddLabel("Background color")
         groupbox:AddColorPicker("BackgroundColor", {
+            Name = "Background Color",
             Default = Color3.fromRGB(25, 25, 25),
             Callback = function(color)
                 self.Library:update_theme("background", color)
             end
         })
 
-        groupbox:AddLabel("Main color")
         groupbox:AddColorPicker("MainColor", {
+            Name = "Main Color",
             Default = Color3.fromRGB(35, 35, 35),
             Callback = function(color)
                 self.Library:update_theme("main", color)
             end
         })
 
-        groupbox:AddLabel("Accent color")
         groupbox:AddColorPicker("AccentColor", {
+            Name = "Accent Color",
             Default = Color3.fromRGB(0, 85, 255),
             Callback = function(color)
                 self.Library:update_theme("accent", color)
             end
         })
 
-        groupbox:AddLabel("Outline color")
         groupbox:AddColorPicker("OutlineColor", {
+            Name = "Outline Color",
             Default = Color3.fromRGB(0, 0, 0),
             Callback = function(color)
                 self.Library:update_theme("outline", color)
             end
         })
 
-        groupbox:AddLabel("Font color")
         groupbox:AddColorPicker("FontColor", {
+            Name = "Font Color",
             Default = Color3.fromRGB(255, 255, 255),
             Callback = function(color)
                 self.Library:update_theme("font", color)
             end
         })
-        
+
         groupbox:AddDropdown("FontFace", {
             Name = "Font Face",
             Default = "Code",
-            Values = {"BuilderSans", "Code", "Fantasy", "Gotham", "Jura", "Roboto", "RobotoMono", "SourceSans"}
+            Values = {"BuilderSans","Code","Fantasy","Gotham","Jura","Roboto","RobotoMono","SourceSans"}
         })
 
         groupbox:AddDivider()
@@ -225,7 +225,7 @@ do
         local section
         
         if TabObj then
-            section = TabObj:AddLeftGroupbox("Themes")
+            section = TabObj:AddLeftGroupbox("Themes", 2)
         else
             if not self.Library.window then
                 if type(self.Library.CreateWindow) == "function" then
