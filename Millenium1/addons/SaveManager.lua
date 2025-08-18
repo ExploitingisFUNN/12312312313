@@ -398,15 +398,18 @@ do
             section = column:section({name = "Configuration", size = 1, default = true})
         end
 
-        local configNameBox = section:textbox({name = "Config Name", flag = "SaveManagerConfigName"})
-        if not configNameBox then
-            return
+        local success, configNameBox = pcall(function()
+            return section:textbox({name = "Config Name", flag = "SaveManagerConfigName"})
+        end)
+        
+        if not success then
+            self.Library:Notify("Failed to create config UI elements")
         end
 
         section:button({name = "Create Config", callback = function()
-            local name = self.Library.flags.SaveManagerConfigName
+            local name = self.Library.flags and self.Library.flags.SaveManagerConfigName or "Default"
             
-            if name:gsub(" ", "") == "" then
+            if not name or name:gsub(" ", "") == "" then
                 self.Library:Notify("Invalid config name (empty)")
                 return
             end
@@ -422,7 +425,9 @@ do
             if #newList == 0 then
                 newList = {"None"}
             end
-            self.Library.Options.SaveManagerConfigList:SetValues(newList)
+            if self.Library.Options and self.Library.Options.SaveManagerConfigList and self.Library.Options.SaveManagerConfigList.SetValues then
+                self.Library.Options.SaveManagerConfigList:SetValues(newList)
+            end
         end})
 
         section:seperator({})
@@ -434,7 +439,7 @@ do
         section:dropdown({name = "Config List", flag = "SaveManagerConfigList", options = configList})
         
         section:button({name = "Load Config", callback = function()
-            local name = self.Library.flags.SaveManagerConfigList
+            local name = self.Library.flags and self.Library.flags.SaveManagerConfigList
             if not name or name == "None" then
                 self.Library:Notify("No config selected")
                 return
@@ -450,7 +455,7 @@ do
         end})
         
         section:button({name = "Overwrite Config", callback = function()
-            local name = self.Library.flags.SaveManagerConfigList
+            local name = self.Library.flags and self.Library.flags.SaveManagerConfigList
             if not name or name == "None" then
                 self.Library:Notify("No config selected")
                 return
@@ -466,7 +471,7 @@ do
         end})
         
         section:button({name = "Delete Config", callback = function()
-            local name = self.Library.flags.SaveManagerConfigList
+            local name = self.Library.flags and self.Library.flags.SaveManagerConfigList
             if not name or name == "None" then
                 self.Library:Notify("No config selected")
                 return
@@ -483,7 +488,9 @@ do
             if #newList == 0 then
                 newList = {"None"}
             end
-            self.Library.Options.SaveManagerConfigList:SetValues(newList)
+            if self.Library.Options and self.Library.Options.SaveManagerConfigList and self.Library.Options.SaveManagerConfigList.SetValues then
+                self.Library.Options.SaveManagerConfigList:SetValues(newList)
+            end
         end})
         
         section:button({name = "Refresh List", callback = function()
@@ -491,13 +498,15 @@ do
             if #newList == 0 then
                 newList = {"None"}
             end
-            self.Library.Options.SaveManagerConfigList:SetValues(newList)
+            if self.Library.Options and self.Library.Options.SaveManagerConfigList and self.Library.Options.SaveManagerConfigList.SetValues then
+                self.Library.Options.SaveManagerConfigList:SetValues(newList)
+            end
         end})
         
         section:seperator({})
         
         section:button({name = "Set as Autoload", callback = function()
-            local name = self.Library.flags.SaveManagerConfigList
+            local name = self.Library.flags and self.Library.flags.SaveManagerConfigList
             if not name or name == "None" then
                 self.Library:Notify("No config selected")
                 return
