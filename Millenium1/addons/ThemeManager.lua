@@ -144,7 +144,9 @@ do
             Name = "Background Color",
             Default = Color3.fromRGB(25, 25, 25),
             Callback = function(color)
-                self.Library:update_theme("background", color)
+                if self.Library then
+                    self:ThemeUpdate()
+                end
             end
         })
 
@@ -152,7 +154,9 @@ do
             Name = "Main Color",
             Default = Color3.fromRGB(35, 35, 35),
             Callback = function(color)
-                self.Library:update_theme("main", color)
+                if self.Library then
+                    self:ThemeUpdate()
+                end
             end
         })
 
@@ -160,7 +164,9 @@ do
             Name = "Accent Color",
             Default = Color3.fromRGB(0, 85, 255),
             Callback = function(color)
-                self.Library:update_theme("accent", color)
+                if self.Library then
+                    self:ThemeUpdate()
+                end
             end
         })
 
@@ -168,7 +174,9 @@ do
             Name = "Outline Color",
             Default = Color3.fromRGB(0, 0, 0),
             Callback = function(color)
-                self.Library:update_theme("outline", color)
+                if self.Library then
+                    self:ThemeUpdate()
+                end
             end
         })
 
@@ -176,7 +184,9 @@ do
             Name = "Font Color",
             Default = Color3.fromRGB(255, 255, 255),
             Callback = function(color)
-                self.Library:update_theme("font", color)
+                if self.Library then
+                    self:ThemeUpdate()
+                end
             end
         })
 
