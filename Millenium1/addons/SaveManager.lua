@@ -510,7 +510,6 @@ do
             end
             
             self.Library:Notify("Set autoload config: " .. name)
-            section:label({text = "Current autoload config: " .. name})
         end})
         
         section:button({name = "Clear Autoload", callback = function()
@@ -521,15 +520,11 @@ do
             end
             
             self.Library:Notify("Cleared autoload config")
-            section:label({text = "Current autoload config: none"})
         end})
         
         local currentAutoload = self:GetAutoloadConfig()
-        if currentAutoload == "none" then
-            section:label({text = "Current autoload config: none"})
-        else
-            section:label({text = "Current autoload config: " .. currentAutoload})
-        end
+        local autoloadText = "Current autoload config: " .. (currentAutoload ~= "none" and currentAutoload or "none")
+        self.Library:Notify(autoloadText)
         
         self:SetIgnoreIndexes({"SaveManagerConfigList", "SaveManagerConfigName"})
     end
