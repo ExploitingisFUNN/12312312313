@@ -175,9 +175,7 @@ do
             end
         end
 
-        local success, err = pcall(function()
-            return writefile(configPath, httpService:JSONEncode(data))
-        end)
+        local success, err = pcall(writefile, configPath, httpService:JSONEncode(data))
 
         return success, err or ""
     end
@@ -403,9 +401,9 @@ do
         end
 
         section:button({name = "Create Config", callback = function()
-            local name = self.Library.flags and self.Library.flags.SaveManagerConfigName
+            local name = self.Library.flags and self.Library.flags.SaveManagerConfigName or ""
             
-            if not name or name:gsub(" ", "") == "" then
+            if name:gsub(" ", "") == "" then
                 self.Library:Notify("Invalid config name (empty)")
                 return
             end
