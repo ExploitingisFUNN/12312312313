@@ -346,7 +346,6 @@ do
 
             for _, file in ipairs(files) do
                 if file:sub(-5) == ".json" then
-                    -- Extract just the filename without extension
                     local filename = file:match("([^/\\]+)%.json$")
                     if filename then
                         table.insert(out, filename)
@@ -398,16 +397,13 @@ do
             section = column:section({name = "Configuration", size = 1, default = true})
         end
 
-        local success, configNameBox = pcall(function()
-            return section:textbox({name = "Config Name", flag = "SaveManagerConfigName"})
-        end)
-        
-        if not success then
-            self.Library:Notify("Failed to create config UI elements")
+        local configNameBox = section:textbox({name = "Config Name", flag = "SaveManagerConfigName"})
+        if not configNameBox then
+            return
         end
 
         section:button({name = "Create Config", callback = function()
-            local name = self.Library.flags and self.Library.flags.SaveManagerConfigName or "Default"
+            local name = self.Library.flags and self.Library.flags.SaveManagerConfigName
             
             if not name or name:gsub(" ", "") == "" then
                 self.Library:Notify("Invalid config name (empty)")
@@ -422,10 +418,7 @@ do
             
             self.Library:Notify("Created config: " .. name)
             local newList = self:RefreshConfigList()
-            if #newList == 0 then
-                newList = {"None"}
-            end
-            if self.Library.Options and self.Library.Options.SaveManagerConfigList and self.Library.Options.SaveManagerConfigList.SetValues then
+            if self.Library.Options.SaveManagerConfigList and self.Library.Options.SaveManagerConfigList.SetValues then
                 self.Library.Options.SaveManagerConfigList:SetValues(newList)
             end
         end})
@@ -434,12 +427,12 @@ do
 
         local configList = self:RefreshConfigList()
         if #configList == 0 then
-            configList = {"None"}
+            table.insert(configList, "None")
         end
         section:dropdown({name = "Config List", flag = "SaveManagerConfigList", options = configList})
         
         section:button({name = "Load Config", callback = function()
-            local name = self.Library.flags and self.Library.flags.SaveManagerConfigList
+            local name = self.Library.flags.SaveManagerConfigList
             if not name or name == "None" then
                 self.Library:Notify("No config selected")
                 return
@@ -455,7 +448,7 @@ do
         end})
         
         section:button({name = "Overwrite Config", callback = function()
-            local name = self.Library.flags and self.Library.flags.SaveManagerConfigList
+            local name = self.Library.flags.SaveManagerConfigList
             if not name or name == "None" then
                 self.Library:Notify("No config selected")
                 return
@@ -471,7 +464,7 @@ do
         end})
         
         section:button({name = "Delete Config", callback = function()
-            local name = self.Library.flags and self.Library.flags.SaveManagerConfigList
+            local name = self.Library.flags.SaveManagerConfigList
             if not name or name == "None" then
                 self.Library:Notify("No config selected")
                 return
@@ -486,9 +479,9 @@ do
             self.Library:Notify("Deleted config: " .. name)
             local newList = self:RefreshConfigList()
             if #newList == 0 then
-                newList = {"None"}
+                table.insert(newList, "None")
             end
-            if self.Library.Options and self.Library.Options.SaveManagerConfigList and self.Library.Options.SaveManagerConfigList.SetValues then
+            if self.Library.Options.SaveManagerConfigList and self.Library.Options.SaveManagerConfigList.SetValues then
                 self.Library.Options.SaveManagerConfigList:SetValues(newList)
             end
         end})
@@ -496,9 +489,9 @@ do
         section:button({name = "Refresh List", callback = function()
             local newList = self:RefreshConfigList()
             if #newList == 0 then
-                newList = {"None"}
+                table.insert(newList, "None")
             end
-            if self.Library.Options and self.Library.Options.SaveManagerConfigList and self.Library.Options.SaveManagerConfigList.SetValues then
+            if self.Library.Options.SaveManagerConfigList and self.Library.Options.SaveManagerConfigList.SetValues then
                 self.Library.Options.SaveManagerConfigList:SetValues(newList)
             end
         end})
@@ -506,7 +499,7 @@ do
         section:seperator({})
         
         section:button({name = "Set as Autoload", callback = function()
-            local name = self.Library.flags and self.Library.flags.SaveManagerConfigList
+            local name = self.Library.flags.SaveManagerConfigList
             if not name or name == "None" then
                 self.Library:Notify("No config selected")
                 return
@@ -531,9 +524,7 @@ do
             self.Library:Notify("Cleared autoload config")
         end})
         
-        local currentAutoload = self:GetAutoloadConfig()
-        local autoloadText = "Current autoload config: " .. (currentAutoload ~= "none" and currentAutoload or "none")
-        self.Library:Notify(autoloadText)
+        section:label({text = "Current autoload config: " .. self:GetAutoloadConfig()})
         
         self:SetIgnoreIndexes({"SaveManagerConfigList", "SaveManagerConfigName"})
     end
