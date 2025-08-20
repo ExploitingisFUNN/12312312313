@@ -351,11 +351,13 @@ do
             local files = listfiles(configPath)
             local out = {}
 
-            for _, file in ipairs(files) do
-                if file:sub(-5) == ".json" then
-                    local filename = file:match("([^/\\]+)%.json$")
-                    if filename and type(filename) == "string" then
-                        table.insert(out, filename)
+            if files then
+                for _, file in ipairs(files) do
+                    if type(file) == "string" and file:sub(-5) == ".json" then
+                        local filename = file:match("([^/\\]+)%.json$")
+                        if filename then
+                            table.insert(out, filename)
+                        end
                     end
                 end
             end
@@ -369,7 +371,11 @@ do
             else
                 warn("Failed to load config list: " .. tostring(data))
             end
-            return {}
+            return {"None"}
+        end
+
+        if #data == 0 then
+            table.insert(data, "None")
         end
 
         return data
