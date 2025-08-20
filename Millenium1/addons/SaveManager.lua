@@ -137,6 +137,10 @@ do
             if not isfolder(subfolderPath) then
                 pcall(makefolder, subfolderPath)
             end
+            local configSubPath = self.Folder .. "/configs/" .. self.SubFolder
+            if not isfolder(configSubPath) then
+                pcall(makefolder, configSubPath)
+            end
         end
     end
 
@@ -338,6 +342,11 @@ do
             configPath = string.format("%s/configs", self.Folder)
         end
 
+
+        if not isfolder(configPath) then
+            pcall(makefolder, configPath)
+        end
+
         local success, data = pcall(function()
             local files = listfiles(configPath)
             local out = {}
@@ -345,7 +354,7 @@ do
             for _, file in ipairs(files) do
                 if file:sub(-5) == ".json" then
                     local filename = file:match("([^/\\]+)%.json$")
-                    if filename then
+                    if filename and type(filename) == "string" then
                         table.insert(out, filename)
                     end
                 end
