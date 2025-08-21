@@ -2439,7 +2439,7 @@ end
                 FontFace = fonts.small;
                 TextColor3 = rgb(72, 72, 73);
                 BorderColor3 = rgb(0, 0, 0);
-                Text = text;
+                Text = tostring(text);
                 Parent = items[ "list_scroller" ];
                 Name = "\0";
                 Size = dim2(1, -12, 0, 0);
@@ -2506,6 +2506,7 @@ end
         end
         
         function cfg.refresh_options(list) 
+            if type(list) ~= "table" then return end
             cfg.y_size = 0
 
             for _, option in cfg.option_instances do 
