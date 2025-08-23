@@ -391,19 +391,24 @@ end
         
         local list = {}
         
+        if not isfolder(library.directory .. "/configs") then
+            makefolder(library.directory .. "/configs")
+        end
+        
         local files = listfiles(library.directory .. "/configs")
         for _, file in pairs(files) do
             if file:sub(-4) == ".cfg" then
                 local name = file:match("[^\\]+%.cfg$")
-                name = name:sub(1, #name - 4)
-                list[#list + 1] = name
+                if name then
+                    name = name:sub(1, #name - 4)
+                    list[#list + 1] = name
+                end
             end
         end
 
         if #list == 0 then
             list = {"No configs found"}
         end
-
         config_holder.refresh_options(list)
         return list
     end 
@@ -3802,7 +3807,7 @@ end
             flag = properties.flag or library:next_flag();    
             callback = properties.callback or function() end;
             data_store = {};        
-            current_element;
+            current_element = nil;
         }
 
         local items = cfg.items; do
@@ -3831,11 +3836,13 @@ end
         end 
 
         function cfg.refresh_options(options_to_refresh) -- ignore goofy parameter
-            for _,option in cfg.data_store do 
+            for _,option in pairs(cfg.data_store) do 
                 option:Destroy()
             end
-
-            for _, option_data in options_to_refresh do -- haha u skids no next >_<
+            
+            cfg.data_store = {}
+            
+            for i, option_data in pairs(options_to_refresh) do
                 local button = library:create( "TextButton" , {
                     FontFace = fonts.small;
                     TextColor3 = rgb(0, 0, 0);
