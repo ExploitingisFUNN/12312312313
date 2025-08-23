@@ -418,20 +418,20 @@ end
     function library:load_config(config_json) 
         local config = http_service:JSONDecode(config_json)
         
-        for _, v in config do 
-            local function_set = library.config_flags[_]
+        for flag_name, value in pairs(config) do 
+            local function_set = library.config_flags[flag_name]
             
-            if _ == "config_name_list" then 
+            if flag_name == "config_name_list" then 
                 continue 
             end
 
             if function_set then 
-                if type(v) == "table" and v["Transparency"] and v["Color"] then
-                    function_set(hex(v["Color"]), v["Transparency"])
-                elseif type(v) == "table" and v["active"] then 
-                    function_set(v)
+                if type(value) == "table" and value["Transparency"] and value["Color"] then
+                    function_set(hex(value["Color"]), value["Transparency"])
+                elseif type(value) == "table" and value["active"] then 
+                    function_set(value)
                 else
-                    function_set(v)
+                    function_set(value)
                 end
             end 
         end 
