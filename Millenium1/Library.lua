@@ -2223,7 +2223,6 @@ end
             callback = options.callback or function() end;
             multi = options.multi or false;
             scrolling = options.scrolling or false;
-            default = options.default or (cfg.multi and {cfg.options[1]}) or cfg.options[1] or "None";
             width = options.width or 130;
 
             -- Ignore these 
@@ -2235,7 +2234,8 @@ end
             y_size;
             seperator = options.seperator or options.Seperator or true;
         }   
-
+        
+        cfg.default = options.default or (cfg.multi and {cfg.options[1]}) or cfg.options[1] or "None"
         flags[cfg.flag] = cfg.default
 
         local items = cfg.items; do 
