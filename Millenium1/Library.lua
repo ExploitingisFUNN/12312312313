@@ -2421,7 +2421,7 @@ end
                     ZIndex = 10;
                 });
 
-                items[ "list_layout" ] = library:create( "UIListLayout" , {
+                library:create( "UIListLayout" , {
                     Parent = items[ "list_scroller" ];
                     Padding = dim(0, 5);
                     SortOrder = Enum.SortOrder.LayoutOrder
@@ -2479,6 +2479,10 @@ end
                 items[ "list_scroller" ].CanvasSize = dim2(0, 0, 0, math.max(0, fullHeight - visibleHeight))
                 items[ "list_scroller" ].ScrollBarThickness = (fullHeight > visibleHeight) and 2 or 0
             end
+            
+            if bool and #cfg.option_instances == 0 then
+                cfg.refresh_options(cfg.options)
+            end
 
             if not (self.sanity and library.current_open == self) then 
                 library:close_element(cfg)
@@ -2505,87 +2509,50 @@ end
             cfg.callback(flags[cfg.flag]) 
         end
         
-        function cfg.refresh_options(list)
+        function cfg.refresh_options(list) 
             if type(list) ~= "table" then return end
+            cfg.y_size = 0
+            cfg.options = list
 
-            for _, option in cfg.option_instances do
-                option:Destroy()
+            for _, option in cfg.option_instances do 
+                option:Destroy() 
             end
+            
+            cfg.option_instances = {} 
 
-            cfg.option_instances = {}
-
-            local entries = {}
-            local raw_map = {}
-
-            for i = 1, #list do
-                insert(entries, { name = tostring(list[i]), value = list[i] })
-            end
-
-            for k, v in pairs(list) do
-                if type(k) ~= "number" then
-                    insert(entries, { name = tostring(k), value = v })
-                end
-            end
-
-            for _, entry in entries do
-                local button = cfg.render_option(entry.name)
+            for _, option in list do 
+                local button = cfg.render_option(option)
+                cfg.y_size += button.AbsoluteSize.Y + 6
                 insert(cfg.option_instances, button)
-
-                if type(button.SetAttribute) == "function" then
-                    pcall(function() button:SetAttribute("raw_value", entry.value) end)
-                end
-                raw_map[button] = entry.value
-
+                
                 button.MouseButton1Down:Connect(function()
-                    if cfg.multi then
+                    if cfg.multi then 
                         local selected_index = find(cfg.multi_items, button.Text)
-
-                        if selected_index then
+                        
+                        if selected_index then 
                             remove(cfg.multi_items, selected_index)
                         else
                             insert(cfg.multi_items, button.Text)
                         end
-
-                        cfg.set(cfg.multi_items)
-                    else
+                        
+                        cfg.set(cfg.multi_items) 				
+                    else 
                         cfg.set_visible(false)
-                        cfg.open = false
-
+                        cfg.open = false 
+                        
                         cfg.set(button.Text)
-                        pcall(function()
-                            local val
-                            if type(button.GetAttribute) == "function" then
-                                val = button:GetAttribute("raw_value")
-                            end
-                            if val == nil then val = raw_map[button] end
-                            cfg.callback(val)
-                        end)
                     end
                 end)
             end
-
-            delay(0, function()
-                if items[ "list_layout" ] and items[ "list_layout" ].AbsoluteContentSize then
-                    cfg.y_size = items[ "list_layout" ].AbsoluteContentSize.Y
-                else
-                    cfg.y_size = #cfg.option_instances * 21 + 12
-                end
-            end)
         end
 
         items[ "dropdown" ].MouseButton1Click:Connect(function()
-            local opts = cfg.options
-            if type(opts) == "function" then
-                local ok, res = pcall(opts)
-                if ok and type(res) == "table" then
-                    cfg.refresh_options(res)
-                end
-            elseif type(opts) == "table" then
-                cfg.refresh_options(opts)
+            cfg.open = not cfg.open 
+            
+            if cfg.open and #cfg.option_instances == 0 and #cfg.options > 0 then
+                cfg.refresh_options(cfg.options)
             end
-
-            cfg.open = not cfg.open
-
+            
             cfg.set_visible(cfg.open)
         end)
 
