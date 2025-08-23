@@ -391,24 +391,33 @@ end
         
         local list = {}
         
-        for idx, file in listfiles(library.directory .. "/configs") do
-            local name = file:gsub(library.directory .. "/configs\\", ""):gsub(".cfg", ""):gsub(library.directory .. "\\configs\\", "")
-            list[#list + 1] = name
+        local files = listfiles(library.directory .. "/configs")
+        for _, file in pairs(files) do
+            if file:sub(-4) == ".cfg" then
+                local name = file:match("[^\\]+%.cfg$")
+                name = name:sub(1, #name - 4)
+                list[#list + 1] = name
+            end
+        end
+
+        if #list == 0 then
+            list = {"No configs found"}
         end
 
         config_holder.refresh_options(list)
+        return list
     end 
 
     function library:get_config()
         local Config = {}
         
-        for _, v in next, flags do
-            if type(v) == "table" and v.key then
-                Config[_] = {active = v.active, mode = v.mode, key = tostring(v.key)}
-            elseif type(v) == "table" and v["Transparency"] and v["Color"] then
-                Config[_] = {Transparency = v["Transparency"], Color = v["Color"]:ToHex()}
+        for flag_name, value in pairs(flags) do
+            if type(value) == "table" and value.key then
+                Config[flag_name] = {active = value.active, mode = value.mode, key = tostring(value.key)}
+            elseif type(value) == "table" and value["Transparency"] and value["Color"] then
+                Config[flag_name] = {Transparency = value["Transparency"], Color = value["Color"]:ToHex()}
             else
-                Config[_] = v
+                Config[flag_name] = value
             end
         end 
         
@@ -3933,9 +3942,30 @@ end
             
             local column = main:column({})
             section:textbox({name = "Config name:", flag = "config_name_text"})
-            section:button({name = "Save", callback = function() writefile(library.directory .. "/configs/" .. flags["config_name_text"] or flags["config_name_list"] .. ".cfg", library:get_config()) library:update_config_list() notifications:create_notification({name = "Configs", info = "Saved config to:\n" .. flags["config_name_list"] or flags["config_name_text"]}) end}) 
-            section:button({name = "Load", callback = function() library:load_config(readfile(library.directory .. "/configs/" .. flags["config_name_list"] .. ".cfg"))  library:update_config_list() notifications:create_notification({name = "Configs", info = "Loaded config:\n" .. flags["config_name_list"]}) end})
-            section:button({name = "Delete", callback = function() delfile(library.directory .. "/configs/" .. flags["config_name_list"] .. ".cfg")  library:update_config_list() notifications:create_notification({name = "Configs", info = "Deleted config:\n" .. flags["config_name_list"]}) end})
+            section:button({name = "Save", callback = function() 
+                local config_name = flags["config_name_text"] ~= "" and flags["config_name_text"] or flags["config_name_list"]
+                if config_name then
+                    writefile(library.directory .. "/configs/" .. config_name .. ".cfg", library:get_config()) 
+                    library:update_config_list()
+                    notifications:create_notification({name = "Configs", info = "Saved config to: " .. config_name})
+                end
+            end}) 
+            section:button({name = "Load", callback = function() 
+                local config_name = flags["config_name_list"]
+                if config_name and isfile(library.directory .. "/configs/" .. config_name .. ".cfg") then
+                    library:load_config(readfile(library.directory .. "/configs/" .. config_name .. ".cfg"))  
+                    library:update_config_list() 
+                    notifications:create_notification({name = "Configs", info = "Loaded config: " .. config_name})
+                end
+            end})
+            section:button({name = "Delete", callback = function() 
+                local config_name = flags["config_name_list"]
+                if config_name and isfile(library.directory .. "/configs/" .. config_name .. ".cfg") then
+                    delfile(library.directory .. "/configs/" .. config_name .. ".cfg")  
+                    library:update_config_list() 
+                    notifications:create_notification({name = "Configs", info = "Deleted config: " .. config_name})
+                end
+            end})
             section:colorpicker({name = "Menu Accent", callback = function(color, alpha) library:update_theme("accent", color) end, color = themes.preset.accent})
             section:keybind({name = "Menu Bind", callback = function(bool) window.toggle_menu(bool) end, default = true})
             
@@ -4101,25 +4131,6 @@ end
         end)
     end
 --
--- 
-
-library.API = {
-    GetLibrary = function()
-        return library
-    end,
-    
-    LoadAddons = function()
-        local ThemeManager = loadstring(readfile("Millenium/addons/ThemeManager.lua"))()
-        local SaveManager = loadstring(readfile("Millenium/addons/SaveManager.lua"))()
-        
-        ThemeManager:SetLibrary(library)
-        SaveManager:SetLibrary(library)
-        
-        return {
-            ThemeManager = ThemeManager,
-            SaveManager = SaveManager
-        }
-    end
-}
+--
 
 return library
