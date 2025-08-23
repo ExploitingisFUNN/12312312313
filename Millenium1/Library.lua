@@ -2236,8 +2236,8 @@ end
             seperator = options.seperator or options.Seperator or true;
         }   
 
-        cfg.default = options.default or (cfg.multi and {cfg.items[1]}) or cfg.items[1] or "None"
-        flags[cfg.flag] = cfg.default
+            cfg.default = options.default or (cfg.multi and {cfg.options[1]}) or cfg.options[1] or "None"
+            flags[cfg.flag] = cfg.default
 
         local items = cfg.items; do 
             -- Element
@@ -2489,6 +2489,10 @@ end
             local selected = {}
             local isTable = type(value) == "table"
 
+            if #cfg.option_instances == 0 then
+                cfg.refresh_options(cfg.options)
+            end
+            
             for _, option in cfg.option_instances do 
                 if option.Text == value or (isTable and find(value, option.Text)) then 
                     insert(selected, option.Text)
@@ -2541,13 +2545,10 @@ end
             end
         end
 
-        items[ "dropdown" ].MouseButton1Click:Connect(function()
-            cfg.open = not cfg.open
-            if cfg.open then
-                cfg.refresh_options(cfg.options)
-            end
-            cfg.set_visible(cfg.open)
-        end)
+                    items[ "dropdown" ].MouseButton1Click:Connect(function()
+                cfg.open = not cfg.open 
+                cfg.set_visible(cfg.open)
+            end)
 
         if cfg.seperator then 
             library:create( "Frame" , {
