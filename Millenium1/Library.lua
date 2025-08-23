@@ -2219,11 +2219,11 @@ end
             name = options.name or nil;
             info = options.info or nil;
             flag = options.flag or library:next_flag();
-            options = options.items or {""};
+            options = options.options or options.items or {""};
             callback = options.callback or function() end;
             multi = options.multi or false;
             scrolling = options.scrolling or false;
-
+            default = options.default or (cfg.multi and {cfg.options[1]}) or cfg.options[1] or "None";
             width = options.width or 130;
 
             -- Ignore these 
@@ -2236,7 +2236,6 @@ end
             seperator = options.seperator or options.Seperator or true;
         }   
 
-        cfg.default = options.default or (cfg.multi and {cfg.options[1]}) or cfg.options[1] or "None"
         flags[cfg.flag] = cfg.default
 
         local items = cfg.items; do 
