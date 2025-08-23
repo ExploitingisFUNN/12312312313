@@ -2421,7 +2421,7 @@ end
                     ZIndex = 10;
                 });
 
-                library:create( "UIListLayout" , {
+                items[ "list_layout" ] = library:create( "UIListLayout" , {
                     Parent = items[ "list_scroller" ];
                     Padding = dim(0, 5);
                     SortOrder = Enum.SortOrder.LayoutOrder
@@ -2505,40 +2505,46 @@ end
             cfg.callback(flags[cfg.flag]) 
         end
         
-        function cfg.refresh_options(list) 
+        function cfg.refresh_options(list)
             if type(list) ~= "table" then return end
-            cfg.y_size = 0
 
-            for _, option in cfg.option_instances do 
-                option:Destroy() 
+            for _, option in cfg.option_instances do
+                option:Destroy()
             end
-            
-            cfg.option_instances = {} 
 
-            for _, option in list do 
+            cfg.option_instances = {}
+
+            for _, option in list do
                 local button = cfg.render_option(option)
-                cfg.y_size += button.AbsoluteSize.Y + 6
                 insert(cfg.option_instances, button)
-                
+
                 button.MouseButton1Down:Connect(function()
-                    if cfg.multi then 
+                    if cfg.multi then
                         local selected_index = find(cfg.multi_items, button.Text)
-                        
-                        if selected_index then 
+
+                        if selected_index then
                             remove(cfg.multi_items, selected_index)
                         else
                             insert(cfg.multi_items, button.Text)
                         end
-                        
-                        cfg.set(cfg.multi_items) 				
-                    else 
+
+                        cfg.set(cfg.multi_items)
+                    else
                         cfg.set_visible(false)
-                        cfg.open = false 
-                        
+                        cfg.open = false
+
                         cfg.set(button.Text)
                     end
                 end)
             end
+
+            delay(0, function()
+                if items[ "list_layout" ] and items[ "list_layout" ].AbsoluteContentSize then
+                    cfg.y_size = items[ "list_layout" ].AbsoluteContentSize.Y
+                else
+                    cfg.y_size = #cfg.option_instances * 21 + 12
+                end
+            end)
         end
 
         items[ "dropdown" ].MouseButton1Click:Connect(function()
