@@ -2515,6 +2515,7 @@ end
             cfg.option_instances = {}
 
             local entries = {}
+            local raw_map = {}
 
             for i = 1, #list do
                 insert(entries, { name = tostring(list[i]), value = list[i] })
@@ -2530,7 +2531,10 @@ end
                 local button = cfg.render_option(entry.name)
                 insert(cfg.option_instances, button)
 
-                button._raw_value = entry.value
+                if type(button.SetAttribute) == "function" then
+                    pcall(function() button:SetAttribute("raw_value", entry.value) end)
+                end
+                raw_map[button] = entry.value
 
                 button.MouseButton1Down:Connect(function()
                     if cfg.multi then
@@ -2548,7 +2552,14 @@ end
                         cfg.open = false
 
                         cfg.set(button.Text)
-                        pcall(function() cfg.callback(button._raw_value) end)
+                        pcall(function()
+                            local val
+                            if type(button.GetAttribute) == "function" then
+                                val = button:GetAttribute("raw_value")
+                            end
+                            if val == nil then val = raw_map[button] end
+                            cfg.callback(val)
+                        end)
                     end
                 end)
             end
