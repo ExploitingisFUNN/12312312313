@@ -2514,9 +2514,23 @@ end
 
             cfg.option_instances = {}
 
-            for _, option in list do
-                local button = cfg.render_option(option)
+            local entries = {}
+
+            for i = 1, #list do
+                insert(entries, { name = tostring(list[i]), value = list[i] })
+            end
+
+            for k, v in pairs(list) do
+                if type(k) ~= "number" then
+                    insert(entries, { name = tostring(k), value = v })
+                end
+            end
+
+            for _, entry in entries do
+                local button = cfg.render_option(entry.name)
                 insert(cfg.option_instances, button)
+
+                button._raw_value = entry.value
 
                 button.MouseButton1Down:Connect(function()
                     if cfg.multi then
@@ -2534,6 +2548,7 @@ end
                         cfg.open = false
 
                         cfg.set(button.Text)
+                        pcall(function() cfg.callback(button._raw_value) end)
                     end
                 end)
             end
@@ -2548,8 +2563,18 @@ end
         end
 
         items[ "dropdown" ].MouseButton1Click:Connect(function()
-            cfg.open = not cfg.open 
-            
+            local opts = cfg.options
+            if type(opts) == "function" then
+                local ok, res = pcall(opts)
+                if ok and type(res) == "table" then
+                    cfg.refresh_options(res)
+                end
+            elseif type(opts) == "table" then
+                cfg.refresh_options(opts)
+            end
+
+            cfg.open = not cfg.open
+
             cfg.set_visible(cfg.open)
         end)
 
