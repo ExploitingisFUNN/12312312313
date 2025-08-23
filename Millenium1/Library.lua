@@ -2465,13 +2465,21 @@ end
         end
         
         function cfg.set_visible(bool)
-            if bool then
-                task.wait()
-            end
-            local a = bool and items["outline"].AbsoluteSize.Y or 0
-            library:tween(items[ "dropdown_holder" ], {Size = dim_offset(items[ "dropdown" ].AbsoluteSize.X, a)})
+            local maxVisible = 5
+            local rowHeight = 21
+            local visibleHeight = math.min(maxVisible, #cfg.option_instances) * rowHeight + 12
+            local fullHeight = cfg.y_size
+
+            local targetHeight = bool and math.min(fullHeight, visibleHeight) or 0
+            library:tween(items[ "dropdown_holder" ], {Size = dim_offset(items[ "dropdown" ].AbsoluteSize.X, targetHeight)})
 
             items[ "dropdown_holder" ].Position = dim2(0, items[ "dropdown" ].AbsolutePosition.X, 0, items[ "dropdown" ].AbsolutePosition.Y + 80)
+
+            if items[ "list_scroller" ] then
+                items[ "list_scroller" ].CanvasSize = dim2(0, 0, 0, math.max(0, fullHeight - visibleHeight))
+                items[ "list_scroller" ].ScrollBarThickness = (fullHeight > visibleHeight) and 2 or 0
+            end
+
             if not (self.sanity and library.current_open == self) then 
                 library:close_element(cfg)
             end
@@ -2498,6 +2506,9 @@ end
         end
         
         function cfg.refresh_options(list) 
+            if type(list) ~= "table" then return end
+            cfg.y_size = 0
+
             for _, option in cfg.option_instances do 
                 option:Destroy() 
             end
@@ -2506,6 +2517,7 @@ end
 
             for _, option in list do 
                 local button = cfg.render_option(option)
+                cfg.y_size += button.AbsoluteSize.Y + 6
                 insert(cfg.option_instances, button)
                 
                 button.MouseButton1Down:Connect(function()
@@ -2530,11 +2542,8 @@ end
         end
 
         items[ "dropdown" ].MouseButton1Click:Connect(function()
-            if not cfg.open then
-                cfg.refresh_options(cfg.options)
-            end
+            cfg.refresh_options(cfg.options)
             cfg.open = not cfg.open 
-            
             cfg.set_visible(cfg.open)
         end)
 
