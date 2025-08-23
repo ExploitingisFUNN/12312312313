@@ -2479,10 +2479,6 @@ end
                 items[ "list_scroller" ].CanvasSize = dim2(0, 0, 0, math.max(0, fullHeight - visibleHeight))
                 items[ "list_scroller" ].ScrollBarThickness = (fullHeight > visibleHeight) and 2 or 0
             end
-            
-            if bool and #cfg.option_instances == 0 then
-                cfg.refresh_options(cfg.options)
-            end
 
             if not (self.sanity and library.current_open == self) then 
                 library:close_element(cfg)
@@ -2512,7 +2508,6 @@ end
         function cfg.refresh_options(list) 
             if type(list) ~= "table" then return end
             cfg.y_size = 0
-            cfg.options = list
 
             for _, option in cfg.option_instances do 
                 option:Destroy() 
@@ -2547,12 +2542,10 @@ end
         end
 
         items[ "dropdown" ].MouseButton1Click:Connect(function()
-            cfg.open = not cfg.open 
-            
-            if cfg.open and #cfg.option_instances == 0 and #cfg.options > 0 then
+            cfg.open = not cfg.open
+            if cfg.open then
                 cfg.refresh_options(cfg.options)
             end
-            
             cfg.set_visible(cfg.open)
         end)
 
