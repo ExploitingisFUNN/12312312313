@@ -3234,7 +3234,7 @@ end
             name = options.name or nil, 
             ignore_key = options.ignore or false, 
 
-            key = options.key or nil, 
+            key = options.key or options.Default or nil, 
             mode = options.mode or "Toggle",
             active = options.default or false, 
 
@@ -4007,11 +4007,16 @@ end
     end
 --
 
-    function cfg:AddKeyPicker(flag, picker_options)
-        picker_options = picker_options or {}
-        if type(flag) == "string" then picker_options.flag = flag end
-        picker_options.name = picker_options.Text or picker_options.name or "Keybind"
-        return cfg.parent:keybind(picker_options)
-    end
+            function cfg:AddKeyPicker(flag, picker_options)
+            picker_options = picker_options or {}
+            if type(flag) == "string" then picker_options.flag = flag end
+            picker_options.name = picker_options.Text or picker_options.name or "Keybind"
+            
+            if picker_options.NoUI == true then
+                picker_options.ignore = true
+            end
+            
+            return cfg.parent:keybind(picker_options)
+        end
 
 return library
