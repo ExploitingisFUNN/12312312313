@@ -414,15 +414,31 @@ end
     end 
 
     function library:get_config()
-        local Config = {}
+        local Config = {
+            objects = {}
+        }
         
+        local count = 0
         for flag_name, value in pairs(flags) do
+            count = count + 1
             if type(value) == "table" and value.key then
-                Config[flag_name] = {active = value.active, mode = value.mode, key = tostring(value.key)}
+                table.insert(Config.objects, {
+                    type = "keybind", 
+                    idx = flag_name, 
+                    value = {active = value.active, mode = value.mode, key = tostring(value.key)}
+                })
             elseif type(value) == "table" and value["Transparency"] and value["Color"] then
-                Config[flag_name] = {Transparency = value["Transparency"], Color = value["Color"]:ToHex()}
+                table.insert(Config.objects, {
+                    type = "colorpicker", 
+                    idx = flag_name, 
+                    value = {Transparency = value["Transparency"], Color = value["Color"]:ToHex()}
+                })
             else
-                Config[flag_name] = value
+                table.insert(Config.objects, {
+                    type = "generic", 
+                    idx = flag_name, 
+                    value = value
+                })
             end
         end 
         
@@ -431,24 +447,51 @@ end
 
     function library:load_config(config_json) 
         local config = http_service:JSONDecode(config_json)
+        local count = 0
         
-        for flag_name, value in pairs(config) do 
-            local function_set = library.config_flags[flag_name]
-            
-            if flag_name == "config_name_list" then 
-                continue 
-            end
-
-            if function_set then 
-                if type(value) == "table" and value["Transparency"] and value["Color"] then
-                    function_set(hex(value["Color"]), value["Transparency"])
-                elseif type(value) == "table" and value["active"] then 
-                    function_set(value)
-                else
-                    function_set(value)
+        if not config.objects then
+            for flag_name, value in pairs(config) do 
+                local function_set = library.config_flags[flag_name]
+                
+                if flag_name == "config_name_list" then 
+                    continue 
                 end
-            end 
-        end 
+    
+                if function_set then 
+                    count = count + 1
+                    if type(value) == "table" and value["Transparency"] and value["Color"] then
+                        function_set(hex(value["Color"]), value["Transparency"])
+                    elseif type(value) == "table" and value["active"] then 
+                        function_set(value)
+                    else
+                        function_set(value)
+                    end
+                end 
+            end
+        else
+            for _, obj in pairs(config.objects) do
+                local flag_name = obj.idx
+                local value = obj.value
+                local function_set = library.config_flags[flag_name]
+                
+                if flag_name == "config_name_list" then 
+                    continue 
+                end
+    
+                if function_set then 
+                    count = count + 1
+                    if obj.type == "colorpicker" then
+                        function_set(hex(value["Color"]), value["Transparency"])
+                    elseif obj.type == "keybind" then 
+                        function_set(value)
+                    else
+                        function_set(value)
+                    end
+                end 
+            end
+        end
+        
+        notifications:create_notification({name = "Config System", info = "Loaded " .. count .. " settings"})
     end 
     
     function library:round(number, float) 
@@ -3842,7 +3885,8 @@ end
             
             cfg.data_store = {}
             
-            for i, option_data in pairs(options_to_refresh) do
+            for i = 1, #options_to_refresh do
+                local option_data = options_to_refresh[i]
                 local button = library:create( "TextButton" , {
                     FontFace = fonts.small;
                     TextColor3 = rgb(0, 0, 0);
