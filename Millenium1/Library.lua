@@ -67,18 +67,16 @@ local concat = table.concat
 -- 
 
 -- Library init
-getgenv().library = {
-    directory = "milenium",
-    folders = {
-        "/fonts",
-        "/configs",
-    },
-    flags = {},
-    config_flags = {},
-    connections = {},   
-    notifications = {notifs = {}},
-    current_open; 
-}
+getgenv().    library = {
+        directory = "milenium",
+        folders = {
+            "/fonts",
+        },
+        flags = {},
+        connections = {},   
+        notifications = {notifs = {}},
+        current_open; 
+    }
 
 local themes = {
     preset = {
@@ -156,8 +154,7 @@ for _, path in next, library.folders do
     makefolder(library.directory .. path)
 end
 
-local flags = library.flags 
-local config_flags = library.config_flags
+local flags = library.flags
 local notifications = library.notifications 
 
 if run:IsStudio() then
@@ -383,88 +380,6 @@ end
         return enum_table
     end
 
-    local config_holder;
-    function library:update_config_list() 
-        if not config_holder then 
-            return 
-        end
-        
-        local list = {}
-        
-        if not isfolder(library.directory .. "/configs") then
-            makefolder(library.directory .. "/configs")
-        end
-        
-        for _, file in pairs(listfiles(library.directory .. "/configs")) do
-            if file:sub(-5) == ".json" then
-                local name = file:match("[^\\/]+%.json$")
-                if name then
-                    name = name:sub(1, #name - 5)
-                    list[#list + 1] = name
-                end
-            end
-        end
-
-        if #list == 0 then
-            list = {"No configs found"}
-        end
-
-        config_holder.refresh_options(list)
-        return list
-    end 
-
-    function library:get_config()
-        return http_service:JSONEncode(flags)
-    end
-
-    function library:load_config(config_json) 
-        local config = http_service:JSONDecode(config_json)
-        local count = 0
-        
-        if not config.objects then
-            for flag_name, value in pairs(config) do 
-                local function_set = library.config_flags[flag_name]
-                
-                if flag_name == "config_name_list" then 
-                    continue 
-                end
-    
-                if function_set then 
-                    count = count + 1
-                    if type(value) == "table" and value["Transparency"] and value["Color"] then
-                        function_set(hex(value["Color"]), value["Transparency"])
-                    elseif type(value) == "table" and value["active"] then 
-                        function_set(value)
-                    else
-                        function_set(value)
-                    end
-                end 
-            end
-        else
-            for _, obj in pairs(config.objects) do
-                local flag_name = obj.idx
-                local value = obj.value
-                local function_set = library.config_flags[flag_name]
-                
-                if flag_name == "config_name_list" then 
-                    continue 
-                end
-    
-                if function_set then 
-                    count = count + 1
-                    if obj.type == "colorpicker" then
-                        function_set(hex(value["Color"]), value["Transparency"])
-                    elseif obj.type == "keybind" then 
-                        function_set(value)
-                    else
-                        function_set(value)
-                    end
-                end 
-            end
-        end
-        
-        notifications:create_notification({name = "Config System", info = "Loaded " .. count .. " settings"})
-    end 
     
     function library:round(number, float) 
         local multiplier = 1 / (float or 1)
@@ -2012,7 +1927,7 @@ end
 
         cfg.set(cfg.default)
 
-        config_flags[cfg.flag] = cfg.set
+
 
         return setmetatable(cfg, library)
     end 
@@ -2238,7 +2153,7 @@ end
         end 
 
         cfg.set(cfg.default)
-        config_flags[cfg.flag] = cfg.set
+
 
         return setmetatable(cfg, library)
     end 
@@ -2588,7 +2503,7 @@ end
         end 
 
         flags[cfg.flag] = {} 
-        config_flags[cfg.flag] = cfg.set
+
         
         cfg.refresh_options(cfg.options)
         cfg.set(cfg.default)
@@ -3176,7 +3091,7 @@ end
         end)
         
         cfg.set(cfg.color, cfg.alpha)
-        config_flags[cfg.flag] = cfg.set
+
 
         return setmetatable(cfg, library)
     end 
@@ -3306,7 +3221,7 @@ end
             cfg.set(cfg.default) 
         end
 
-        config_flags[cfg.flag] = cfg.set
+
 
         return setmetatable(cfg, library)
     end
@@ -3642,7 +3557,7 @@ end
         end)
         
         cfg.set({mode = cfg.mode, active = cfg.active, key = cfg.key})           
-        config_flags[cfg.flag] = cfg.set
+
 
         return setmetatable(cfg, library)
     end
@@ -3930,71 +3845,7 @@ end
         return setmetatable(cfg, library)
     end 
 
-    function library:init_config(window) 
-        local hasAddons = pcall(function() 
-            return readfile("Millenium/addons/ThemeManager.lua") and readfile("Millenium/addons/SaveManager.lua") 
-        end)
-        
-        if hasAddons then
-            local ThemeManager = loadstring(readfile("Millenium/addons/ThemeManager.lua"))()
-            local SaveManager = loadstring(readfile("Millenium/addons/SaveManager.lua"))()
-            
-            ThemeManager:SetLibrary(library)
-            SaveManager:SetLibrary(library)
-            
-            ThemeManager:SetFolder("MilleniumThemes")
-            SaveManager:SetFolder("MilleniumConfigs")
-            
-            SaveManager:IgnoreThemeSettings()
-            
-            ThemeManager:SetupThemeManager(window)
-            SaveManager:SetupSaveManager(window)
-            
-            SaveManager:LoadAutoloadConfig()
-            
-            return {
-                ThemeManager = ThemeManager,
-                SaveManager = SaveManager
-            }
-        else
-            local main = window:tab({name = "Configs", tabs = {"Main"}})
-            
-            local column = main:column({})
-            local section = column:section({name = "Configs", size = 1, default = true, icon = "rbxassetid://139628202576511"})
-            config_holder = section:list({options = {"Report", "This", "Error", "To", "Finobe"}, callback = function(option) end, flag = "config_name_list"}); library:update_config_list()
-            
-            local column = main:column({})
-            section:textbox({name = "Config name:", flag = "config_name_text"})
-            section:button({name = "Save", callback = function() 
-                local config_name = flags["config_name_text"] ~= "" and flags["config_name_text"] or flags["config_name_list"]
-                if config_name then
-                    writefile(library.directory .. "/configs/" .. config_name .. ".json", library:get_config()) 
-                    library:update_config_list()
-                    notifications:create_notification({name = "Configs", info = "Saved config to: " .. config_name})
-                end
-            end}) 
-            section:button({name = "Load", callback = function() 
-                local config_name = flags["config_name_list"]
-                if config_name and isfile(library.directory .. "/configs/" .. config_name .. ".json") then
-                    library:load_config(readfile(library.directory .. "/configs/" .. config_name .. ".json"))  
-                    library:update_config_list() 
-                    notifications:create_notification({name = "Configs", info = "Loaded config: " .. config_name})
-                end
-            end})
-            section:button({name = "Delete", callback = function() 
-                local config_name = flags["config_name_list"]
-                if config_name and isfile(library.directory .. "/configs/" .. config_name .. ".json") then
-                    delfile(library.directory .. "/configs/" .. config_name .. ".json")  
-                    library:update_config_list() 
-                    notifications:create_notification({name = "Configs", info = "Deleted config: " .. config_name})
-                end
-            end})
-            section:colorpicker({name = "Menu Accent", callback = function(color, alpha) library:update_theme("accent", color) end, color = themes.preset.accent})
-            section:keybind({name = "Menu Bind", callback = function(bool) window.toggle_menu(bool) end, default = true})
-            
-            return {}
-        end
-    end
+
 --
 
 -- Notification Library
