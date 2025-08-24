@@ -395,13 +395,12 @@ end
             makefolder(library.directory .. "/configs")
         end
         
-        local files = listfiles(library.directory .. "/configs")
-        for _, file in pairs(files) do
-            if file:sub(-4) == ".cfg" then
-                local name = string.match(file, "[^\\]+%.cfg$")
+        for _, file in pairs(listfiles(library.directory .. "/configs")) do
+            if file:sub(-5) == ".json" then
+                local name = file:match("[^\\/]+%.json$")
                 if name then
-                    name = name:sub(1, #name - 4)
-                    table.insert(list, name)
+                    name = name:sub(1, #name - 5)
+                    list[#list + 1] = name
                 end
             end
         end
@@ -409,45 +408,13 @@ end
         if #list == 0 then
             list = {"No configs found"}
         end
-        
-        notifications:create_notification({name = "Config System", info = "Found " .. #list .. " configs"})
-        
-        if config_holder and config_holder.refresh_options then
-            config_holder.refresh_options(list)
-        end
+
+        config_holder.refresh_options(list)
         return list
     end 
 
     function library:get_config()
-        local Config = {
-            objects = {}
-        }
-        
-        local count = 0
-        for flag_name, value in pairs(flags) do
-            count = count + 1
-            if type(value) == "table" and value.key then
-                table.insert(Config.objects, {
-                    type = "keybind", 
-                    idx = flag_name, 
-                    value = {active = value.active, mode = value.mode, key = tostring(value.key)}
-                })
-            elseif type(value) == "table" and value["Transparency"] and value["Color"] then
-                table.insert(Config.objects, {
-                    type = "colorpicker", 
-                    idx = flag_name, 
-                    value = {Transparency = value["Transparency"], Color = value["Color"]:ToHex()}
-                })
-            else
-                table.insert(Config.objects, {
-                    type = "generic", 
-                    idx = flag_name, 
-                    value = value
-                })
-            end
-        end 
-        
-        return http_service:JSONEncode(Config)
+        return http_service:JSONEncode(flags)
     end
 
     function library:load_config(config_json) 
@@ -3994,44 +3961,32 @@ end
             
             local column = main:column({})
             local section = column:section({name = "Configs", size = 1, default = true, icon = "rbxassetid://139628202576511"})
-            
-            config_holder = section:list({
-                options = {}, 
-                callback = function(option) end, 
-                flag = "config_name_list"
-            })
-
-            library:update_config_list()
+            config_holder = section:list({options = {"Report", "This", "Error", "To", "Finobe"}, callback = function(option) end, flag = "config_name_list"}); library:update_config_list()
             
             local column = main:column({})
             section:textbox({name = "Config name:", flag = "config_name_text"})
             section:button({name = "Save", callback = function() 
                 local config_name = flags["config_name_text"] ~= "" and flags["config_name_text"] or flags["config_name_list"]
-                if config_name and config_name ~= "No configs found" then
-                    writefile(library.directory .. "/configs/" .. config_name .. ".cfg", library:get_config()) 
+                if config_name then
+                    writefile(library.directory .. "/configs/" .. config_name .. ".json", library:get_config()) 
                     library:update_config_list()
                     notifications:create_notification({name = "Configs", info = "Saved config to: " .. config_name})
-                else
-                    notifications:create_notification({name = "Config Error", info = "Please enter a config name first"})
                 end
             end}) 
             section:button({name = "Load", callback = function() 
                 local config_name = flags["config_name_list"]
-                if config_name and config_name ~= "No configs found" and isfile(library.directory .. "/configs/" .. config_name .. ".cfg") then
-                    library:load_config(readfile(library.directory .. "/configs/" .. config_name .. ".cfg"))  
+                if config_name and isfile(library.directory .. "/configs/" .. config_name .. ".json") then
+                    library:load_config(readfile(library.directory .. "/configs/" .. config_name .. ".json"))  
+                    library:update_config_list() 
                     notifications:create_notification({name = "Configs", info = "Loaded config: " .. config_name})
-                else
-                    notifications:create_notification({name = "Config Error", info = "No valid config selected"})
                 end
             end})
             section:button({name = "Delete", callback = function() 
                 local config_name = flags["config_name_list"]
-                if config_name and config_name ~= "No configs found" and isfile(library.directory .. "/configs/" .. config_name .. ".cfg") then
-                    delfile(library.directory .. "/configs/" .. config_name .. ".cfg")  
+                if config_name and isfile(library.directory .. "/configs/" .. config_name .. ".json") then
+                    delfile(library.directory .. "/configs/" .. config_name .. ".json")  
                     library:update_config_list() 
                     notifications:create_notification({name = "Configs", info = "Deleted config: " .. config_name})
-                else
-                    notifications:create_notification({name = "Config Error", info = "No valid config selected"})
                 end
             end})
             section:colorpicker({name = "Menu Accent", callback = function(color, alpha) library:update_theme("accent", color) end, color = themes.preset.accent})
