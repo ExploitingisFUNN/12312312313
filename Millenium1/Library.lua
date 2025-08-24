@@ -398,10 +398,10 @@ end
         local files = listfiles(library.directory .. "/configs")
         for i, file in ipairs(files) do
             if file:sub(-5) == ".json" then
-                local filename = file:gsub("\\", "/")
-                filename = filename:match("[^/]+%.json$")
-                if filename then
-                    list[#list + 1] = filename:sub(1, #filename - 5)
+                local name = string.match(file, "[^\\/]+%.json$")
+                if name then
+                    name = name:sub(1, #name - 5)
+                    list[#list + 1] = name
                 end
             end
         end
@@ -410,30 +410,15 @@ end
             list = {"No configs found"}
         end
         
-        notifications:create_notification({name = "Config System", info = "Found " .. #list .. " configs"})
-        
-        if config_holder and config_holder.refresh_options then
-            config_holder.refresh_options(list)
-        end
+        config_holder.refresh_options(list)
         return list
     end 
 
     function library:get_config()
         local Config = {}
-        
-        local count = 0
         for flag_name, value in pairs(flags) do
-            count = count + 1
-            if type(value) == "table" and value.key then
-                Config[flag_name] = {active = value.active, mode = value.mode, key = tostring(value.key)}
-            elseif type(value) == "table" and value["Transparency"] and value["Color"] then
-                Config[flag_name] = {Transparency = value["Transparency"], Color = value["Color"]:ToHex()}
-            else
-                Config[flag_name] = value
-            end
-        end 
-        
-        notifications:create_notification({name = "Config System", info = "Saved " .. count .. " settings"})
+            Config[flag_name] = value
+        end
         return http_service:JSONEncode(Config)
     end
 
@@ -3876,11 +3861,9 @@ end
             end
             
             cfg.data_store = {}
+            
             for i = 1, #options_to_refresh do
-                local option_data = tostring(options_to_refresh[i])
-                if type(options_to_refresh[i]) == "function" then
-                    option_data = "Function_" .. i
-                end
+                local option_data = options_to_refresh[i]
                 local button = library:create( "TextButton" , {
                     FontFace = fonts.small;
                     TextColor3 = rgb(0, 0, 0);
@@ -3923,8 +3906,8 @@ end
                         library:tween(current, {TextColor3 = rgb(72, 72, 72)})
                     end
 
-                    flags[cfg.flag] = options_to_refresh[i]
-                    cfg.callback(options_to_refresh[i])
+                    flags[cfg.flag] = option_data
+                    cfg.callback(option_data)
                     library:tween(name, {TextColor3 = rgb(245, 245, 245)})
                     cfg.current_element = name
                 end)
