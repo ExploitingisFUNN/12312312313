@@ -396,12 +396,12 @@ end
         end
         
         local files = listfiles(library.directory .. "/configs")
-        for _, file in pairs(files) do
-            if file:sub(-4) == ".cfg" then
-                local name = string.match(file, "[^\\]+%.cfg$")
-                if name then
-                    name = name:sub(1, #name - 4)
-                    table.insert(list, name)
+        for i, file in ipairs(files) do
+            if file:sub(-5) == ".json" then
+                local filename = file:gsub("\\", "/")
+                filename = filename:match("[^/]+%.json$")
+                if filename then
+                    list[#list + 1] = filename:sub(1, #filename - 5)
                 end
             end
         end
@@ -419,34 +419,21 @@ end
     end 
 
     function library:get_config()
-        local Config = {
-            objects = {}
-        }
+        local Config = {}
         
         local count = 0
         for flag_name, value in pairs(flags) do
             count = count + 1
             if type(value) == "table" and value.key then
-                table.insert(Config.objects, {
-                    type = "keybind", 
-                    idx = flag_name, 
-                    value = {active = value.active, mode = value.mode, key = tostring(value.key)}
-                })
+                Config[flag_name] = {active = value.active, mode = value.mode, key = tostring(value.key)}
             elseif type(value) == "table" and value["Transparency"] and value["Color"] then
-                table.insert(Config.objects, {
-                    type = "colorpicker", 
-                    idx = flag_name, 
-                    value = {Transparency = value["Transparency"], Color = value["Color"]:ToHex()}
-                })
+                Config[flag_name] = {Transparency = value["Transparency"], Color = value["Color"]:ToHex()}
             else
-                table.insert(Config.objects, {
-                    type = "generic", 
-                    idx = flag_name, 
-                    value = value
-                })
+                Config[flag_name] = value
             end
         end 
         
+        notifications:create_notification({name = "Config System", info = "Saved " .. count .. " settings"})
         return http_service:JSONEncode(Config)
     end
 
@@ -3889,9 +3876,11 @@ end
             end
             
             cfg.data_store = {}
-            
             for i = 1, #options_to_refresh do
-                local option_data = options_to_refresh[i]
+                local option_data = tostring(options_to_refresh[i])
+                if type(options_to_refresh[i]) == "function" then
+                    option_data = "Function_" .. i
+                end
                 local button = library:create( "TextButton" , {
                     FontFace = fonts.small;
                     TextColor3 = rgb(0, 0, 0);
@@ -3934,8 +3923,8 @@ end
                         library:tween(current, {TextColor3 = rgb(72, 72, 72)})
                     end
 
-                    flags[cfg.flag] = option_data
-                    cfg.callback(option_data)
+                    flags[cfg.flag] = options_to_refresh[i]
+                    cfg.callback(options_to_refresh[i])
                     library:tween(name, {TextColor3 = rgb(245, 245, 245)})
                     cfg.current_element = name
                 end)
@@ -4008,7 +3997,7 @@ end
             section:button({name = "Save", callback = function() 
                 local config_name = flags["config_name_text"] ~= "" and flags["config_name_text"] or flags["config_name_list"]
                 if config_name and config_name ~= "No configs found" then
-                    writefile(library.directory .. "/configs/" .. config_name .. ".cfg", library:get_config()) 
+                    writefile(library.directory .. "/configs/" .. config_name .. ".json", library:get_config()) 
                     library:update_config_list()
                     notifications:create_notification({name = "Configs", info = "Saved config to: " .. config_name})
                 else
@@ -4017,8 +4006,8 @@ end
             end}) 
             section:button({name = "Load", callback = function() 
                 local config_name = flags["config_name_list"]
-                if config_name and config_name ~= "No configs found" and isfile(library.directory .. "/configs/" .. config_name .. ".cfg") then
-                    library:load_config(readfile(library.directory .. "/configs/" .. config_name .. ".cfg"))  
+                if config_name and config_name ~= "No configs found" and isfile(library.directory .. "/configs/" .. config_name .. ".json") then
+                    library:load_config(readfile(library.directory .. "/configs/" .. config_name .. ".json"))  
                     notifications:create_notification({name = "Configs", info = "Loaded config: " .. config_name})
                 else
                     notifications:create_notification({name = "Config Error", info = "No valid config selected"})
@@ -4026,8 +4015,8 @@ end
             end})
             section:button({name = "Delete", callback = function() 
                 local config_name = flags["config_name_list"]
-                if config_name and config_name ~= "No configs found" and isfile(library.directory .. "/configs/" .. config_name .. ".cfg") then
-                    delfile(library.directory .. "/configs/" .. config_name .. ".cfg")  
+                if config_name and config_name ~= "No configs found" and isfile(library.directory .. "/configs/" .. config_name .. ".json") then
+                    delfile(library.directory .. "/configs/" .. config_name .. ".json")  
                     library:update_config_list() 
                     notifications:create_notification({name = "Configs", info = "Deleted config: " .. config_name})
                 else
