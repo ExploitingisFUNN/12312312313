@@ -398,10 +398,10 @@ end
         local files = listfiles(library.directory .. "/configs")
         for _, file in pairs(files) do
             if file:sub(-4) == ".cfg" then
-                local name = file:match("[^\\]+%.cfg$")
+                local name = string.match(file, "[^\\]+%.cfg$")
                 if name then
                     name = name:sub(1, #name - 4)
-                    list[#list + 1] = name
+                    table.insert(list, name)
                 end
             end
         end
@@ -409,7 +409,12 @@ end
         if #list == 0 then
             list = {"No configs found"}
         end
-        config_holder.refresh_options(list)
+        
+        notifications:create_notification({name = "Config System", info = "Found " .. #list .. " configs"})
+        
+        if config_holder and config_holder.refresh_options then
+            config_holder.refresh_options(list)
+        end
         return list
     end 
 
@@ -3989,32 +3994,44 @@ end
             
             local column = main:column({})
             local section = column:section({name = "Configs", size = 1, default = true, icon = "rbxassetid://139628202576511"})
-            config_holder = section:list({options = {"Report", "This", "Error", "To", "Finobe"}, callback = function(option) end, flag = "config_name_list"}); library:update_config_list()
+            
+            config_holder = section:list({
+                options = {}, 
+                callback = function(option) end, 
+                flag = "config_name_list"
+            })
+
+            library:update_config_list()
             
             local column = main:column({})
             section:textbox({name = "Config name:", flag = "config_name_text"})
             section:button({name = "Save", callback = function() 
                 local config_name = flags["config_name_text"] ~= "" and flags["config_name_text"] or flags["config_name_list"]
-                if config_name then
+                if config_name and config_name ~= "No configs found" then
                     writefile(library.directory .. "/configs/" .. config_name .. ".cfg", library:get_config()) 
                     library:update_config_list()
                     notifications:create_notification({name = "Configs", info = "Saved config to: " .. config_name})
+                else
+                    notifications:create_notification({name = "Config Error", info = "Please enter a config name first"})
                 end
             end}) 
             section:button({name = "Load", callback = function() 
                 local config_name = flags["config_name_list"]
-                if config_name and isfile(library.directory .. "/configs/" .. config_name .. ".cfg") then
+                if config_name and config_name ~= "No configs found" and isfile(library.directory .. "/configs/" .. config_name .. ".cfg") then
                     library:load_config(readfile(library.directory .. "/configs/" .. config_name .. ".cfg"))  
-                    library:update_config_list() 
                     notifications:create_notification({name = "Configs", info = "Loaded config: " .. config_name})
+                else
+                    notifications:create_notification({name = "Config Error", info = "No valid config selected"})
                 end
             end})
             section:button({name = "Delete", callback = function() 
                 local config_name = flags["config_name_list"]
-                if config_name and isfile(library.directory .. "/configs/" .. config_name .. ".cfg") then
+                if config_name and config_name ~= "No configs found" and isfile(library.directory .. "/configs/" .. config_name .. ".cfg") then
                     delfile(library.directory .. "/configs/" .. config_name .. ".cfg")  
                     library:update_config_list() 
                     notifications:create_notification({name = "Configs", info = "Deleted config: " .. config_name})
+                else
+                    notifications:create_notification({name = "Config Error", info = "No valid config selected"})
                 end
             end})
             section:colorpicker({name = "Menu Accent", callback = function(color, alpha) library:update_theme("accent", color) end, color = themes.preset.accent})
