@@ -396,12 +396,12 @@ end
         end
         
         local files = listfiles(library.directory .. "/configs")
-        for i, file in ipairs(files) do
+        for _, file in pairs(files) do
             if file:sub(-5) == ".json" then
-                local name = string.match(file, "[^\\/]+%.json$")
+                local name = string.match(file, "[^/\\]+%.json$")
                 if name then
                     name = name:sub(1, #name - 5)
-                    list[#list + 1] = name
+                    table.insert(list, name)
                 end
             end
         end
@@ -410,16 +410,16 @@ end
             list = {"No configs found"}
         end
         
-        config_holder.refresh_options(list)
+        notifications:create_notification({name = "Config System", info = "Found " .. #list .. " configs"})
+        
+        if config_holder and config_holder.refresh_options then
+            config_holder.refresh_options(list)
+        end
         return list
     end 
 
     function library:get_config()
-        local Config = {}
-        for flag_name, value in pairs(flags) do
-            Config[flag_name] = value
-        end
-        return http_service:JSONEncode(Config)
+        return http_service:JSONEncode(flags)
     end
 
     function library:load_config(config_json) 
