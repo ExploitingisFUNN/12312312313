@@ -2519,6 +2519,7 @@ end
             info = options.info or nil; 
 
             items = {};
+            parent = self;
         }
 
         local items = cfg.items; do 
@@ -4005,6 +4006,12 @@ end
         end)
     end
 --
---
+
+    function cfg:AddKeyPicker(flag, picker_options)
+        picker_options = picker_options or {}
+        if type(flag) == "string" then picker_options.flag = flag end
+        picker_options.name = picker_options.Text or picker_options.name or "Keybind"
+        return cfg.parent:keybind(picker_options)
+    end
 
 return library
