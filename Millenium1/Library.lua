@@ -4011,18 +4011,27 @@ end
     end
 
     function library:unload()
-        if self.items and self.items.screen_gui then
-            self.items.screen_gui:Destroy()
+        if self.items then
+            pcall(function() self.items:Destroy() end)
         end
+
         for _, v in pairs(self.connections) do
-            if type(v) == "table" and v.Disconnect then
+            if typeof(v) == "RBXScriptConnection" then
+                pcall(function() v:Disconnect() end)
+            elseif type(v) == "table" and v.Disconnect then
                 pcall(function() v:Disconnect() end)
             end
         end
         self.connections = {}
+
         if self.notifications and self.notifications.holder then
-             self.notifications.holder:Destroy()
+            pcall(function() self.notifications.holder:Destroy() end)
         end
+
+        if self._onUnloadCallback then
+            pcall(self._onUnloadCallback)
+        end
+
         if getgenv().library == self then
             getgenv().library = nil
         end
