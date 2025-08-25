@@ -4009,7 +4009,23 @@ end
             items[ "notification" ]:Destroy() 
         end)
     end
---
---
+
+    function library:unload()
+        if self.items and self.items.screen_gui then
+            self.items.screen_gui:Destroy()
+        end
+        for _, v in pairs(self.connections) do
+            if type(v) == "table" and v.Disconnect then
+                pcall(function() v:Disconnect() end)
+            end
+        end
+        self.connections = {}
+        if self.notifications and self.notifications.holder then
+             self.notifications.holder:Destroy()
+        end
+        if getgenv().library == self then
+            getgenv().library = nil
+        end
+    end
 
 return library
