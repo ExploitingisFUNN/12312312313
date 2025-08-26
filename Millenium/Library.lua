@@ -4012,6 +4012,13 @@ end
     end
 
     function library:unload()
+        if self.unloading then return end
+        self.unloading = true
+
+        if self._onUnloadCallback then
+            pcall(self._onUnloadCallback)
+        end
+        
         if self.items then
             pcall(function() self.items:Destroy() end)
         end
@@ -4027,10 +4034,6 @@ end
 
         if self.notifications and self.notifications.holder then
             pcall(function() self.notifications.holder:Destroy() end)
-        end
-
-        if self._onUnloadCallback then
-            pcall(self._onUnloadCallback)
         end
 
         if getgenv().library == self then
