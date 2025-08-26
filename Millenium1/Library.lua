@@ -2455,6 +2455,7 @@ end
         
         function cfg.refresh_options(list) 
             if type(list) ~= "table" then return end
+            cfg.options = list;
             cfg.y_size = 0
 
             for _, option in cfg.option_instances do 

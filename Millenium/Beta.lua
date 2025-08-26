@@ -67,18 +67,16 @@ local concat = table.concat
 -- 
 
 -- Library init
-getgenv().library = {
-    directory = "milenium",
-    folders = {
-        "/fonts",
-        "/configs",
-    },
-    flags = {},
-    config_flags = {},
-    connections = {},   
-    notifications = {notifs = {}},
-    current_open; 
-}
+getgenv().    library = {
+        directory = "milenium",
+        folders = {
+            "/fonts",
+        },
+        flags = {},
+        connections = {},   
+        notifications = {notifs = {}},
+        current_open; 
+    }
 
 local themes = {
     preset = {
@@ -156,8 +154,7 @@ for _, path in next, library.folders do
     makefolder(library.directory .. path)
 end
 
-local flags = library.flags 
-local config_flags = library.config_flags
+local flags = library.flags
 local notifications = library.notifications 
 
 if run:IsStudio() then
@@ -383,59 +380,11 @@ end
         return enum_table
     end
 
-    local config_holder;
-    function library:update_config_list() 
-        if not config_holder then 
-            return 
-        end
-        
-        local list = {}
-        
-        for idx, file in listfiles(library.directory .. "/configs") do
-            local name = file:gsub(library.directory .. "/configs\\", ""):gsub(".cfg", ""):gsub(library.directory .. "\\configs\\", "")
-            list[#list + 1] = name
-        end
 
-        config_holder.refresh_options(list)
-    end 
 
-    function library:get_config()
-        local Config = {}
-        
-        for _, v in next, flags do
-            if type(v) == "table" and v.key then
-                Config[_] = {active = v.active, mode = v.mode, key = tostring(v.key)}
-            elseif type(v) == "table" and v["Transparency"] and v["Color"] then
-                Config[_] = {Transparency = v["Transparency"], Color = v["Color"]:ToHex()}
-            else
-                Config[_] = v
-            end
-        end 
-        
-        return http_service:JSONEncode(Config)
-    end
 
-    function library:load_config(config_json) 
-        local config = http_service:JSONDecode(config_json)
-        
-        for _, v in config do 
-            local function_set = library.config_flags[_]
-            
-            if _ == "config_name_list" then 
-                continue 
-            end
 
-            if function_set then 
-                if type(v) == "table" and v["Transparency"] and v["Color"] then
-                    function_set(hex(v["Color"]), v["Transparency"])
-                elseif type(v) == "table" and v["active"] then 
-                    function_set(v)
-                else
-                    function_set(v)
-                end
-            end 
-        end 
-    end 
+
     
     function library:round(number, float) 
         local multiplier = 1 / (float or 1)
@@ -1983,7 +1932,7 @@ end
 
         cfg.set(cfg.default)
 
-        config_flags[cfg.flag] = cfg.set
+
 
         return setmetatable(cfg, library)
     end 
@@ -2209,7 +2158,7 @@ end
         end 
 
         cfg.set(cfg.default)
-        config_flags[cfg.flag] = cfg.set
+
 
         return setmetatable(cfg, library)
     end 
@@ -2219,11 +2168,10 @@ end
             name = options.name or nil;
             info = options.info or nil;
             flag = options.flag or library:next_flag();
-            options = options.items or {""};
+            options = options.options or options.items or {""};
             callback = options.callback or function() end;
             multi = options.multi or false;
             scrolling = options.scrolling or false;
-
             width = options.width or 130;
 
             -- Ignore these 
@@ -2235,8 +2183,8 @@ end
             y_size;
             seperator = options.seperator or options.Seperator or true;
         }   
-
-        cfg.default = options.default or (cfg.multi and {cfg.items[1]}) or cfg.items[1] or "None"
+        
+        cfg.default = options.default or (cfg.multi and {cfg.options[1]}) or cfg.options[1] or "None"
         flags[cfg.flag] = cfg.default
 
         local items = cfg.items; do 
@@ -2439,7 +2387,7 @@ end
                 FontFace = fonts.small;
                 TextColor3 = rgb(72, 72, 73);
                 BorderColor3 = rgb(0, 0, 0);
-                Text = text;
+                Text = tostring(text);
                 Parent = items[ "list_scroller" ];
                 Name = "\0";
                 Size = dim2(1, -12, 0, 0);
@@ -2506,6 +2454,8 @@ end
         end
         
         function cfg.refresh_options(list) 
+            if type(list) ~= "table" then return end
+            cfg.options = list;
             cfg.y_size = 0
 
             for _, option in cfg.option_instances do 
@@ -2541,8 +2491,8 @@ end
         end
 
         items[ "dropdown" ].MouseButton1Click:Connect(function()
+            cfg.refresh_options(cfg.options)
             cfg.open = not cfg.open 
-            
             cfg.set_visible(cfg.open)
         end)
 
@@ -2559,7 +2509,7 @@ end
         end 
 
         flags[cfg.flag] = {} 
-        config_flags[cfg.flag] = cfg.set
+
         
         cfg.refresh_options(cfg.options)
         cfg.set(cfg.default)
@@ -3147,7 +3097,7 @@ end
         end)
         
         cfg.set(cfg.color, cfg.alpha)
-        config_flags[cfg.flag] = cfg.set
+
 
         return setmetatable(cfg, library)
     end 
@@ -3277,7 +3227,7 @@ end
             cfg.set(cfg.default) 
         end
 
-        config_flags[cfg.flag] = cfg.set
+
 
         return setmetatable(cfg, library)
     end
@@ -3613,7 +3563,7 @@ end
         end)
         
         cfg.set({mode = cfg.mode, active = cfg.active, key = cfg.key})           
-        config_flags[cfg.flag] = cfg.set
+
 
         return setmetatable(cfg, library)
     end
@@ -3793,7 +3743,7 @@ end
             flag = properties.flag or library:next_flag();    
             callback = properties.callback or function() end;
             data_store = {};        
-            current_element;
+            current_element = nil;
         }
 
         local items = cfg.items; do
@@ -3822,11 +3772,14 @@ end
         end 
 
         function cfg.refresh_options(options_to_refresh) -- ignore goofy parameter
-            for _,option in cfg.data_store do 
+            for _,option in pairs(cfg.data_store) do 
                 option:Destroy()
             end
-
-            for _, option_data in options_to_refresh do -- haha u skids no next >_<
+            
+            cfg.data_store = {}
+            
+            for i = 1, #options_to_refresh do
+                local option_data = options_to_refresh[i]
                 local button = library:create( "TextButton" , {
                     FontFace = fonts.small;
                     TextColor3 = rgb(0, 0, 0);
@@ -3898,23 +3851,7 @@ end
         return setmetatable(cfg, library)
     end 
 
-    function library:init_config(window) 
-        -- removed Settings separator
-        local main = window:tab({name = "Configs", tabs = {"Main"}})
-        
-        local column = main:column({})
-        local section = column:section({name = "Configs", size = 1, default = true, icon = "rbxassetid://139628202576511"})
-        config_holder = section:list({options = {"Report", "This", "Error", "To", "Finobe"}, callback = function(option) end, flag = "config_name_list"}); library:update_config_list()
-        
-        local column = main:column({})
-        -- removed Settings section
-        section:textbox({name = "Config name:", flag = "config_name_text"})
-        section:button({name = "Save", callback = function() writefile(library.directory .. "/configs/" .. flags["config_name_text"] or flags["config_name_list"] .. ".cfg", library:get_config()) library:update_config_list() notifications:create_notification({name = "Configs", info = "Saved config to:\n" .. flags["config_name_list"] or flags["config_name_text"]}) end}) 
-        section:button({name = "Load", callback = function() library:load_config(readfile(library.directory .. "/configs/" .. flags["config_name_list"] .. ".cfg"))  library:update_config_list() notifications:create_notification({name = "Configs", info = "Loaded config:\n" .. flags["config_name_list"]}) end})
-        section:button({name = "Delete", callback = function() delfile(library.directory .. "/configs/" .. flags["config_name_list"] .. ".cfg")  library:update_config_list() notifications:create_notification({name = "Configs", info = "Deleted config:\n" .. flags["config_name_list"]}) end})
-        section:colorpicker({name = "Menu Accent", callback = function(color, alpha) library:update_theme("accent", color) end, color = themes.preset.accent})
-        section:keybind({name = "Menu Bind", callback = function(bool) window.toggle_menu(bool) end, default = true})
-    end
+
 --
 
 -- Notification Library
@@ -4073,7 +4010,32 @@ end
             items[ "notification" ]:Destroy() 
         end)
     end
---
--- 
+
+    function library:unload()
+        if self.items then
+            pcall(function() self.items:Destroy() end)
+        end
+
+        for _, v in pairs(self.connections) do
+            if typeof(v) == "RBXScriptConnection" then
+                pcall(function() v:Disconnect() end)
+            elseif type(v) == "table" and v.Disconnect then
+                pcall(function() v:Disconnect() end)
+            end
+        end
+        self.connections = {}
+
+        if self.notifications and self.notifications.holder then
+            pcall(function() self.notifications.holder:Destroy() end)
+        end
+
+        if self._onUnloadCallback then
+            pcall(self._onUnloadCallback)
+        end
+
+        if getgenv().library == self then
+            getgenv().library = nil
+        end
+    end
 
 return library
