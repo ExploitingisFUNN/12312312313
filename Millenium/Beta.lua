@@ -428,6 +428,52 @@ function translator:translate_all()
 end
 
 getgenv().translator = translator
+
+function translator:create_language_dropdown(parent_section)
+    if not parent_section then 
+        warn("[Translator] No parent section provided for language dropdown")
+        return 
+    end
+    
+    parent_section:dropdown({
+        name = "Language",
+        options = {
+            "English", "Spanish", "French", "German", "Japanese", "Korean", 
+            "Chinese Simplified", "Russian", "Portuguese", "Italian", "Arabic", 
+            "Hindi", "Thai", "Vietnamese", "Turkish", "Dutch", "Polish", 
+            "Swedish", "Finnish", "Norwegian"
+        },
+        default = "English",
+        seperator = false,
+        callback = function(selected)
+            local lang_map = {
+                ["English"] = "en", ["Spanish"] = "es", ["French"] = "fr",
+                ["German"] = "de", ["Japanese"] = "ja", ["Korean"] = "ko",
+                ["Chinese Simplified"] = "zh-cn", ["Russian"] = "ru",
+                ["Portuguese"] = "pt", ["Italian"] = "it", ["Arabic"] = "ar",
+                ["Hindi"] = "hi", ["Thai"] = "th", ["Vietnamese"] = "vi",
+                ["Turkish"] = "tr", ["Dutch"] = "nl", ["Polish"] = "pl",
+                ["Swedish"] = "sv", ["Finnish"] = "fi", ["Norwegian"] = "no"
+            }
+            
+            self.current_lang = lang_map[selected] or "en"
+            self.enabled = (self.current_lang ~= "en")
+            
+            local element_count = 0
+            for _ in pairs(self.text_elements) do
+                element_count = element_count + 1
+            end
+            print(string.format("[Translator] Found %d registered elements", element_count))
+            
+            if not fsid or not bl then
+                warn("[Translator] Google API not initialized! Waiting...")
+                task.wait(2)
+            end
+            
+            self:translate_all()
+        end
+    })
+end
 --
 
 -- Library functions 
@@ -4070,161 +4116,6 @@ getgenv().translator = translator
 
         cfg = setmetatable(cfg, library)
         
-        task.spawn(function()
-            task.wait(0.1)
-            local lang_label = library:create("TextLabel", {
-                FontFace = fonts.font;
-                TextColor3 = rgb(245, 245, 245);
-                Text = "Language";
-                Parent = items["elements"];
-                Size = dim2(1, 0, 0, 20);
-                BackgroundTransparency = 1;
-                TextXAlignment = Enum.TextXAlignment.Left;
-                TextSize = 16;
-            })
-            translator:add_element(lang_label, "Text")
-            
-            local lang_dropdown_holder = library:create("Frame", {
-                Parent = items["elements"];
-                Size = dim2(1, 0, 0, 30);
-                BackgroundTransparency = 1;
-            })
-            
-            local lang_dropdown_btn = library:create("TextButton", {
-                FontFace = fonts.small;
-                TextColor3 = rgb(86, 86, 87);
-                Text = "English";
-                Parent = lang_dropdown_holder;
-                Size = dim2(1, -8, 1, 0);
-                Position = dim2(0, 4, 0, 0);
-                BackgroundColor3 = rgb(33, 33, 35);
-                BorderSizePixel = 0;
-                TextSize = 14;
-                AutoButtonColor = false;
-            })
-            
-            library:create("UICorner", {
-                Parent = lang_dropdown_btn;
-                CornerRadius = dim(0, 6)
-            })
-            
-            library:create("UIPadding", {
-                Parent = lang_dropdown_btn;
-                PaddingLeft = dim(0, 8);
-                PaddingRight = dim(0, 8);
-            })
-            
-            local dropdown_items = library:create("Frame", {
-                Parent = library["items"];
-                Position = dim2(0, 0, 0, 0);
-                Size = dim2(0, 0, 0, 0);
-                BackgroundColor3 = rgb(33, 33, 35);
-                BorderSizePixel = 0;
-                ClipsDescendants = true;
-                ZIndex = 1000;
-            })
-            
-            library:create("UICorner", {
-                Parent = dropdown_items;
-                CornerRadius = dim(0, 6)
-            })
-            
-            local dropdown_list = library:create("ScrollingFrame", {
-                Parent = dropdown_items;
-                Size = dim2(1, -6, 1, -6);
-                Position = dim2(0, 3, 0, 3);
-                BackgroundTransparency = 1;
-                ScrollBarThickness = 2;
-                BorderSizePixel = 0;
-                AutomaticCanvasSize = Enum.AutomaticSize.Y;
-            })
-            
-            library:create("UIListLayout", {
-                Parent = dropdown_list;
-                Padding = dim(0, 2);
-                SortOrder = Enum.SortOrder.LayoutOrder
-            })
-            
-            local languages = {
-                "English", "Spanish", "French", "German", "Japanese", "Korean", 
-                "Chinese Simplified", "Russian", "Portuguese", "Italian", "Arabic", 
-                "Hindi", "Thai", "Vietnamese", "Turkish", "Dutch", "Polish", 
-                "Swedish", "Finnish", "Norwegian"
-            }
-            
-            local lang_map = {
-                ["English"] = "en", ["Spanish"] = "es", ["French"] = "fr",
-                ["German"] = "de", ["Japanese"] = "ja", ["Korean"] = "ko",
-                ["Chinese Simplified"] = "zh-cn", ["Russian"] = "ru",
-                ["Portuguese"] = "pt", ["Italian"] = "it", ["Arabic"] = "ar",
-                ["Hindi"] = "hi", ["Thai"] = "th", ["Vietnamese"] = "vi",
-                ["Turkish"] = "tr", ["Dutch"] = "nl", ["Polish"] = "pl",
-                ["Swedish"] = "sv", ["Finnish"] = "fi", ["Norwegian"] = "no"
-            }
-            
-            local dropdown_open = false
-            
-            for _, lang in ipairs(languages) do
-                local lang_btn = library:create("TextButton", {
-                    FontFace = fonts.small;
-                    TextColor3 = rgb(72, 72, 73);
-                    Text = lang;
-                    Parent = dropdown_list;
-                    Size = dim2(1, 0, 0, 24);
-                    BackgroundTransparency = 1;
-                    TextSize = 14;
-                    TextXAlignment = Enum.TextXAlignment.Left;
-                })
-                
-                library:create("UIPadding", {
-                    Parent = lang_btn;
-                    PaddingLeft = dim(0, 8);
-                })
-                
-                lang_btn.MouseButton1Click:Connect(function()
-                    lang_dropdown_btn.Text = lang
-                    translator.current_lang = lang_map[lang] or "en"
-                    translator.enabled = (translator.current_lang ~= "en")
-                    
-                    local element_count = 0
-                    for _ in pairs(translator.text_elements) do
-                        element_count = element_count + 1
-                    end
-                    print(string.format("[Translator] Found %d registered elements", element_count))
-                    
-                    if not fsid or not bl then
-                        warn("[Translator] Google API not initialized! Waiting...")
-                        task.wait(2)
-                    end
-                    
-                    translator:translate_all()
-                    
-                    library:tween(dropdown_items, {Size = dim2(0, 0, 0, 0)})
-                    dropdown_open = false
-                end)
-                
-                lang_btn.MouseEnter:Connect(function()
-                    library:tween(lang_btn, {TextColor3 = rgb(245, 245, 245)})
-                end)
-                
-                lang_btn.MouseLeave:Connect(function()
-                    library:tween(lang_btn, {TextColor3 = rgb(72, 72, 73)})
-                end)
-            end
-            
-            lang_dropdown_btn.MouseButton1Click:Connect(function()
-                dropdown_open = not dropdown_open
-                if dropdown_open then
-                    local btn_pos = lang_dropdown_btn.AbsolutePosition
-                    local btn_size = lang_dropdown_btn.AbsoluteSize
-                    dropdown_items.Position = dim2(0, btn_pos.X, 0, btn_pos.Y + btn_size.Y + 5)
-                    library:tween(dropdown_items, {Size = dim2(0, btn_size.X, 0, math.min(200, #languages * 26))})
-                else
-                    library:tween(dropdown_items, {Size = dim2(0, 0, 0, 0)})
-                end
-            end)
-        end)
-
         return cfg
     end 
 
