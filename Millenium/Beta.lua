@@ -861,7 +861,7 @@ end
                 TextSize = 30;
                 BackgroundColor3 = rgb(255, 255, 255)
             }); library:apply_theme(items[ "title" ], "accent", "TextColor3");
-            translator:add_element(items[ "title" ], "Text", "<u>%s</u>");
+            if getgenv().translator then getgenv().translator:add_element(items[ "title" ], "Text", "<u>%s</u>") end
             
             items[ "multi_holder" ] = library:create( "Frame" , {
                 Parent = items[ "main" ];
@@ -1335,7 +1335,7 @@ end
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-                translator:add_element(items[ "name" ], "Text");
+                if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
                 
                 library:create( "UIPadding" , {
                     Parent = items[ "name" ];
@@ -1420,7 +1420,7 @@ end
                                 TextSize = 16;
                                 BackgroundColor3 = rgb(255, 255, 255)
                             });
-                            translator:add_element(multi_items[ "name" ], "Text");
+                            if getgenv().translator then getgenv().translator:add_element(multi_items[ "name" ], "Text") end
                             
                             library:create( "UIPadding" , {
                                 Parent = multi_items[ "name" ];
@@ -1873,7 +1873,7 @@ end
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "section_title" ], "Text");
+            if getgenv().translator then getgenv().translator:add_element(items[ "section_title" ], "Text") end
             
             library:create( "Frame" , {
                 AnchorPoint = vec2(0, 1);
@@ -2094,7 +2094,7 @@ end
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "name" ], "Text");
+            if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
 
             if cfg.info then 
                 items[ "info" ] = library:create( "TextLabel" , {
@@ -2114,7 +2114,7 @@ end
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-                translator:add_element(items[ "info" ], "Text");
+                if getgenv().translator then getgenv().translator:add_element(items[ "info" ], "Text") end
             end 
             
             library:create( "UIPadding" , {
@@ -2362,7 +2362,7 @@ end
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "name" ], "Text");
+            if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
             
             if cfg.info then 
                 items[ "info" ] = library:create( "TextLabel" , {
@@ -2382,7 +2382,7 @@ end
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-                translator:add_element(items[ "info" ], "Text");
+                if getgenv().translator then getgenv().translator:add_element(items[ "info" ], "Text") end
             end 
 
             library:create( "UIPadding" , {
@@ -2593,7 +2593,7 @@ end
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-                translator:add_element(items[ "name" ], "Text");
+                if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
                 
                 if cfg.info then 
                     items[ "info" ] = library:create( "TextLabel" , {
@@ -2613,7 +2613,7 @@ end
                         TextSize = 16;
                         BackgroundColor3 = rgb(255, 255, 255)
                     });
-                    translator:add_element(items[ "info" ], "Text");
+                    if getgenv().translator then getgenv().translator:add_element(items[ "info" ], "Text") end
                 end 
 
                 library:create( "UIPadding" , {
@@ -2936,7 +2936,7 @@ end
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "name" ], "Text");
+            if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
 
             if cfg.info then 
                 items[ "info" ] = library:create( "TextLabel" , {
@@ -2956,7 +2956,7 @@ end
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-                translator:add_element(items[ "info" ], "Text");
+                if getgenv().translator then getgenv().translator:add_element(items[ "info" ], "Text") end
             end 
             
             library:create( "UIPadding" , {
@@ -3525,7 +3525,7 @@ end
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "name" ], "Text");
+            if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
             
             library:create( "UIPadding" , {
                 Parent = items[ "name" ];
@@ -3667,7 +3667,7 @@ end
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-                translator:add_element(items[ "name" ], "Text");
+                if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
                 
                 library:create( "UIPadding" , {
                     Parent = items[ "name" ];
@@ -4003,7 +4003,7 @@ end
                 TextSize = 14;
                 BackgroundColor3 = rgb(255, 255, 255)
             }); library:apply_theme(items[ "name" ], "accent", "BackgroundColor3");
-            translator:add_element(items[ "name" ], "Text");                            
+            if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end                            
         end 
 
         items[ "button" ].MouseButton1Click:Connect(function()
@@ -4315,7 +4315,7 @@ end
                 TextSize = 14;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "title" ], "Text");
+            if getgenv().translator then getgenv().translator:add_element(items[ "title" ], "Text") end
             
             library:create( "UICorner" , {
                 Parent = items[ "notification" ];
@@ -4338,7 +4338,7 @@ end
                 TextSize = 14;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "info" ], "Text");
+            if getgenv().translator then getgenv().translator:add_element(items[ "info" ], "Text") end
             
             library:create( "UIPadding" , {
                 PaddingBottom = dim(0, 17);
