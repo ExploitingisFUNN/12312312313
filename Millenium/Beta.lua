@@ -551,7 +551,12 @@ getgenv().translator = translator
         return floor(number * multiplier + 0.5) / multiplier
     end 
 
-    function library:apply_theme(instance, theme, property) 
+    function library:apply_theme(instance, theme, property)
+        if not instance then return end
+        if not themes.utility[theme] then return end
+        if not themes.utility[theme][property] then 
+            themes.utility[theme][property] = {}
+        end
         insert(themes.utility[theme][property], instance)
     end
 
