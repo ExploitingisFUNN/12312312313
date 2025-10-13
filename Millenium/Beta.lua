@@ -88,7 +88,8 @@ local themes = {
             BackgroundColor3 = {}, 	
             TextColor3 = {}, 
             ImageColor3 = {}, 
-            ScrollBarImageColor3 = {} 
+            ScrollBarImageColor3 = {},
+            Color = {}
         },
     }
 }
