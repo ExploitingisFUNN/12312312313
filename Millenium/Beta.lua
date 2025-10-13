@@ -782,75 +782,70 @@ getgenv().translator = translator
                 BackgroundColor3 = rgb(255, 255, 255)
             }); cfg.multi_holder = items[ "multi_holder" ];
             
-            items[ "burger_button" ] = library:create( "TextButton" , {
+            items[ "burger_holder" ] = library:create( "Frame" , {
                 Parent = items[ "multi_holder" ];
                 Name = "\0";
-                Text = "";
-                AutoButtonColor = false;
-                Position = dim2(0, 12, 0, 12);
-                Size = dim2(0, 32, 0, 32);
-                BackgroundColor3 = rgb(30, 30, 35);
+                Position = dim2(0, 10, 0, 10);
+                Size = dim2(0, 30, 0, 30);
+                BackgroundTransparency = 1;
                 BorderSizePixel = 0;
                 ZIndex = 10
             });
             
-            library:create( "UICorner" , {
-                Parent = items[ "burger_button" ];
-                CornerRadius = dim(0, 6)
-            });
-            
-            items[ "burger_stroke" ] = library:create( "UIStroke" , {
-                Color = themes.preset.accent;
-                Parent = items[ "burger_button" ];
-                Thickness = 2;
-                ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
-                Transparency = 0.5
-            });
-            library:apply_theme(items[ "burger_stroke" ], "accent", "Color");
-            
-            items[ "burger_icon" ] = library:create( "Frame" , {
-                Parent = items[ "burger_button" ];
+            items[ "burger_button" ] = library:create( "TextButton" , {
+                Parent = items[ "burger_holder" ];
                 Name = "\0";
-                Position = dim2(0, 7, 0, 9);
-                Size = dim2(0, 18, 0, 2);
-                BackgroundColor3 = themes.preset.accent;
-                BorderSizePixel = 0
+                Text = "";
+                AutoButtonColor = false;
+                Size = dim2(1, 0, 1, 0);
+                BackgroundTransparency = 1;
+                BorderSizePixel = 0;
+                ZIndex = 11
             });
-            library:apply_theme(items[ "burger_icon" ], "accent", "BackgroundColor3");
+            
+            items[ "burger_line1" ] = library:create( "Frame" , {
+                Parent = items[ "burger_holder" ];
+                Name = "\0";
+                Position = dim2(0, 5, 0, 7);
+                Size = dim2(0, 20, 0, 3);
+                BackgroundColor3 = rgb(255, 255, 255);
+                BorderSizePixel = 0;
+                ZIndex = 11
+            });
             
             library:create( "UICorner" , {
-                Parent = items[ "burger_icon" ];
-                CornerRadius = dim(0, 1)
+                Parent = items[ "burger_line1" ];
+                CornerRadius = dim(0, 2)
             });
             
             items[ "burger_line2" ] = library:create( "Frame" , {
-                Parent = items[ "burger_button" ];
+                Parent = items[ "burger_holder" ];
                 Name = "\0";
-                Position = dim2(0, 7, 0, 15);
-                Size = dim2(0, 18, 0, 2);
-                BackgroundColor3 = themes.preset.accent;
-                BorderSizePixel = 0
+                Position = dim2(0, 5, 0, 13);
+                Size = dim2(0, 20, 0, 3);
+                BackgroundColor3 = rgb(255, 255, 255);
+                BorderSizePixel = 0;
+                ZIndex = 11
             });
-            library:apply_theme(items[ "burger_line2" ], "accent", "BackgroundColor3");
             
             library:create( "UICorner" , {
                 Parent = items[ "burger_line2" ];
-                CornerRadius = dim(0, 1)
+                CornerRadius = dim(0, 2)
             });
             
             items[ "burger_line3" ] = library:create( "Frame" , {
-                Parent = items[ "burger_button" ];
+                Parent = items[ "burger_holder" ];
                 Name = "\0";
-                Position = dim2(0, 7, 0, 21);
-                Size = dim2(0, 18, 0, 2);
-                BackgroundColor3 = themes.preset.accent;
-                BorderSizePixel = 0
+                Position = dim2(0, 5, 0, 19);
+                Size = dim2(0, 20, 0, 3);
+                BackgroundColor3 = rgb(255, 255, 255);
+                BorderSizePixel = 0;
+                ZIndex = 11
             });
-            library:apply_theme(items[ "burger_line3" ], "accent", "BackgroundColor3");
             
             library:create( "UICorner" , {
                 Parent = items[ "burger_line3" ];
-                CornerRadius = dim(0, 1)
+                CornerRadius = dim(0, 2)
             });
             
             library:create( "Frame" , {
@@ -1283,7 +1278,7 @@ getgenv().translator = translator
                 
                 library:create( "UIListLayout" , {
                     Parent = items[ "multi_section_button_holder" ];
-                    Padding = dim(0, 7);
+                    Padding = dim(0, 10);
                     SortOrder = Enum.SortOrder.LayoutOrder;
                     FillDirection = Enum.FillDirection.Horizontal
                 });
@@ -1292,8 +1287,8 @@ getgenv().translator = translator
                     PaddingTop = dim(0, 8);
                     PaddingBottom = dim(0, 7);
                     Parent = items[ "multi_section_button_holder" ];
-                    PaddingRight = dim(0, 7);
-                    PaddingLeft = dim(0, 7)
+                    PaddingRight = dim(0, 10);
+                    PaddingLeft = dim(0, 50)
                 });                        
 
                 for _, section in cfg.tabs do
