@@ -336,12 +336,19 @@ local translator = {
     current_lang = "en",
     text_elements = {},
     original_texts = {},
-    rich_text_patterns = {}
+    rich_text_patterns = {},
+    registered_count = 0
 }
 
 function translator:add_element(element, property, rich_text_format)
-    if not element then return end
+    if not element or not property then return end
     local id = tostring(element)
+    local ok, debug_id = pcall(function()
+        return element:GetDebugId()
+    end)
+    if ok and debug_id then
+        id = tostring(debug_id)
+    end
     if not self.original_texts[id] then
         self.original_texts[id] = element[property]
     end
@@ -349,6 +356,8 @@ function translator:add_element(element, property, rich_text_format)
     if rich_text_format then
         self.rich_text_patterns[id] = rich_text_format
     end
+    self.registered_count += 1
+    print(string.format("[Translator] Registered #%d: %s (%s)", self.registered_count, element:GetFullName(), property))
 end
 
 function translator:strip_rich_text(text)
