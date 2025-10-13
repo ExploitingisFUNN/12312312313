@@ -280,11 +280,21 @@ task.spawn(function()
     pcall(function()
         local b=(got(root).Body or "")
         fsid=b:match('"FdrFJe":"(.-)"'); bl=b:match('"cfb2h":"(.-)"')
+        if fsid and bl then
+            print("[Translator] Google API initialized successfully")
+        else
+            warn("[Translator] Failed to initialize Google API")
+        end
     end)
 end)
 
 local function translate(txt,tgt,src)
-    if not fsid or not bl then return txt end
+    if not txt or txt == "" then return txt end
+    if not fsid or not bl then 
+        warn("[Translator] Google API not initialized")
+        return txt 
+    end
+    
     local success, result = pcall(function()
         rid+=10000
         tgt=iso(tgt) or "en"; src=iso(src) or "auto"
@@ -293,11 +303,32 @@ local function translate(txt,tgt,src)
         local url=exec.."?"..q{rpcids=rpc,["f.sid"]=fsid,bl=bl,hl="en",_reqid=rid-10000,rt="c"}
         local body=q{["f.req"]=jE(freq)}
         local res=got(url,"POST",body)
-        local ok,out=pcall(function() local arr=jD((res.Body or ""):match("%[.-%]\n")); return jD(arr[1][3]) end)
-        if not ok then return nil end
-        return out[2][1][1][6][1][1]
+        
+        if not res or not res.Body then
+            warn("[Translator] No response from Google")
+            return nil
+        end
+        
+        local ok,out=pcall(function() 
+            local arr=jD((res.Body or ""):match("%[.-%]\n"))
+            if not arr then return nil end
+            local decoded = jD(arr[1][3])
+            if not decoded then return nil end
+            return decoded[2][1][1][6][1][1]
+        end)
+        
+        if not ok then 
+            return nil 
+        end
+        return out
     end)
-    return success and result or txt
+    
+    if not success then
+        warn("[Translator] Error translating:", txt, result)
+        return txt
+    end
+    
+    return result or txt
 end
 
 local translator = {
@@ -333,6 +364,7 @@ end
 
 function translator:translate_all()
     if not self.enabled or self.current_lang == "en" then
+        print("[Translator] Restoring original text...")
         for id, data in pairs(self.text_elements) do
             if data.elem and self.original_texts[id] then
                 pcall(function()
@@ -343,42 +375,56 @@ function translator:translate_all()
         return
     end
     
+    print(string.format("[Translator] Starting translation to %s...", self.current_lang))
     local translated_count = 0
     local total_count = 0
+    local failed_count = 0
     
-    for id, data in pairs(self.text_elements) do
-        if data.elem and self.original_texts[id] and data.elem.Parent then
-            total_count = total_count + 1
-            local success, err = pcall(function()
-                local original = self.original_texts[id]
-                local plain_text = self:strip_rich_text(original)
+    task.spawn(function()
+        for id, data in pairs(self.text_elements) do
+            if data.elem and self.original_texts[id] and data.elem.Parent then
+                total_count = total_count + 1
                 
-                if plain_text ~= "" and plain_text ~= " " and #plain_text > 0 then
-                    local translated = translate(plain_text, self.current_lang, "auto")
+                local success, err = pcall(function()
+                    local original = self.original_texts[id]
+                    local plain_text = self:strip_rich_text(original)
                     
-                    if translated and translated ~= "" and translated ~= plain_text then
-                        if self.rich_text_patterns[id] then
-                            translated = self:apply_rich_text(translated, self.rich_text_patterns[id])
-                        elseif original:match("<.->") then
-                            local prefix = original:match("^(<.->)")
-                            local suffix = original:match("(<.->)$")
-                            if prefix and suffix then
-                                translated = prefix .. translated .. suffix
+                    if plain_text ~= "" and plain_text ~= " " and #plain_text > 0 then
+                        local translated = translate(plain_text, self.current_lang, "auto")
+                        
+                        if translated and translated ~= "" and translated ~= plain_text then
+                            if self.rich_text_patterns[id] then
+                                translated = self:apply_rich_text(translated, self.rich_text_patterns[id])
+                            elseif original:match("<.->") then
+                                local prefix = original:match("^(<.->)")
+                                local suffix = original:match("(<.->)$")
+                                if prefix and suffix then
+                                    translated = prefix .. translated .. suffix
+                                end
                             end
+                            data.elem[data.prop] = translated
+                            translated_count = translated_count + 1
+                        else
+                            failed_count = failed_count + 1
                         end
-                        data.elem[data.prop] = translated
-                        translated_count = translated_count + 1
+                    end
+                end)
+                
+                if not success then
+                    failed_count = failed_count + 1
+                    if err then
+                        warn("[Translator Error]", err)
                     end
                 end
-            end)
-            if not success and err then
-                warn("[Translator Error]", err)
+                
+                if total_count % 5 == 0 then
+                    task.wait(0.05)
+                end
             end
         end
-    end
-    
-    print(string.format("[Translator] Translated %d/%d elements to %s", translated_count, total_count, self.current_lang))
-    task.wait(0.1)
+        
+        print(string.format("[Translator] Complete: %d translated, %d failed, %d total", translated_count, failed_count, total_count))
+    end)
 end
 
 getgenv().translator = translator
@@ -4139,6 +4185,18 @@ getgenv().translator = translator
                     lang_dropdown_btn.Text = lang
                     translator.current_lang = lang_map[lang] or "en"
                     translator.enabled = (translator.current_lang ~= "en")
+                    
+                    local element_count = 0
+                    for _ in pairs(translator.text_elements) do
+                        element_count = element_count + 1
+                    end
+                    print(string.format("[Translator] Found %d registered elements", element_count))
+                    
+                    if not fsid or not bl then
+                        warn("[Translator] Google API not initialized! Waiting...")
+                        task.wait(2)
+                    end
+                    
                     translator:translate_all()
                     
                     library:tween(dropdown_items, {Size = dim2(0, 0, 0, 0)})
