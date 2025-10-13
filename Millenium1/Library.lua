@@ -215,164 +215,6 @@ local fonts = {}; do
 end
 --
 
--- Google Translate Integration
-local function req(opt)
-    local fn=(syn and syn.request) or (http and http.request) or http_request or request
-    if fn then return fn(opt) end
-    return http_service:RequestAsync(opt)
-end
-
-local gv=isfile and isfile("googlev.txt") and readfile("googlev.txt") or ""
-
-local function consent(body)
-    local t={}
-    for tag in body:gmatch('<input type="hidden" name=".-" value=".-">') do
-        local k,v=tag:match('<input type="hidden" name="(.-)" value="(.-)">'); t[k]=v
-    end
-    gv=t.v or ""; if writefile then writefile("googlev.txt",gv) end
-end
-
-local function got(url,method,body)
-    method=method or "GET"
-    local res=req({Url=url,Method=method,Headers={cookie="CONSENT=YES+"..(gv or "")},Body=body})
-    local b=res.Body or res.body or ""; if type(b)~="string" then b=tostring(b) end
-    if b:match("https://consent.google.com/s") then
-        consent(b)
-        res=req({Url=url,Method="GET",Headers={cookie="CONSENT=YES+"..(gv or "")}})
-    end
-    return res
-end
-
-local langs={
-    auto="Automatic",af="Afrikaans",sq="Albanian",am="Amharic",ar="Arabic",hy="Armenian",az="Azerbaijani",eu="Basque",be="Belarusian",bn="Bengali",bs="Bosnian",bg="Bulgarian",ca="Catalan",ceb="Cebuano",ny="Chichewa",
-    ["zh-cn"]="Chinese Simplified",["zh-tw"]="Chinese Traditional",co="Corsican",hr="Croatian",cs="Czech",da="Danish",nl="Dutch",en="English",eo="Esperanto",et="Estonian",tl="Filipino",fi="Finnish",fr="French",fy="Frisian",
-    gl="Galician",ka="Georgian",de="German",el="Greek",gu="Gujarati",ht="Haitian Creole",ha="Hausa",haw="Hawaiian",iw="Hebrew",hi="Hindi",hmn="Hmong",hu="Hungarian",is="Icelandic",ig="Igbo",id="Indonesian",ga="Irish",it="Italian",
-    ja="Japanese",jw="Javanese",kn="Kannada",kk="Kazakh",km="Khmer",ko="Korean",ku="Kurdish (Kurmanji)",ky="Kyrgyz",lo="Lao",la="Latin",lv="Latvian",lt="Lithuanian",lb="Luxembourgish",mk="Macedonian",mg="Malagasy",ms="Malay",
-    ml="Malayalam",mt="Maltese",mi="Maori",mr="Marathi",mn="Mongolian",my="Myanmar (Burmese)",ne="Nepali",no="Norwegian",ps="Pashto",fa="Persian",pl="Polish",pt="Portuguese",pa="Punjabi",ro="Romanian",ru="Russian",sm="Samoan",
-    gd="Scots Gaelic",sr="Serbian",st="Sesotho",sn="Shona",sd="Sindhi",si="Sinhala",sk="Slovak",sl="Slovenian",so="Somali",es="Spanish",su="Sundanese",sw="Swahili",sv="Swedish",tg="Tajik",ta="Tamil",te="Telugu",th="Thai",tr="Turkish",
-    uk="Ukrainian",ur="Urdu",uz="Uzbek",vi="Vietnamese",cy="Welsh",xh="Xhosa",yi="Yiddish",yo="Yoruba",zu="Zulu"
-}
-
-local function iso(s)
-    if not s then return end
-    for k,v in pairs(langs) do if k==s or v==s then return k end end
-end
-
-local function q(data)
-    local s=""
-    for k,v in pairs(data) do
-        if type(v)=="table" then for _,vv in pairs(v) do s..="&"..http_service:UrlEncode(k).."="..http_service:UrlEncode(vv) end
-        else s..="&"..http_service:UrlEncode(k).."="..http_service:UrlEncode(v) end
-    end
-    return s:sub(2)
-end
-
-local jE=function(x) return http_service:JSONEncode(x) end
-local jD=function(x) return http_service:JSONDecode(x) end
-
-local rpc="MkEWBc"
-local root="https://translate.google.com/"
-local exec="https://translate.google.com/_/TranslateWebserverUi/data/batchexecute"
-local fsid,bl,rid=nil,nil,math.random(1000,9999)
-
-task.spawn(function()
-    pcall(function()
-        local b=(got(root).Body or "")
-        fsid=b:match('"FdrFJe":"(.-)"'); bl=b:match('"cfb2h":"(.-)"')
-    end)
-end)
-
-local function translate(txt,tgt,src)
-    if not fsid or not bl then return txt end
-    local success, result = pcall(function()
-        rid+=10000
-        tgt=iso(tgt) or "en"; src=iso(src) or "auto"
-        local data={{txt,src,tgt,true},{nil}}
-        local freq={{{rpc,jE(data),nil,"generic"}}}
-        local url=exec.."?"..q{rpcids=rpc,["f.sid"]=fsid,bl=bl,hl="en",_reqid=rid-10000,rt="c"}
-        local body=q{["f.req"]=jE(freq)}
-        local res=got(url,"POST",body)
-        local ok,out=pcall(function() local arr=jD((res.Body or ""):match("%[.-%]\n")); return jD(arr[1][3]) end)
-        if not ok then return nil end
-        return out[2][1][1][6][1][1]
-    end)
-    return success and result or txt
-end
-
-local translator = {
-    enabled = false,
-    current_lang = "en",
-    text_elements = {},
-    original_texts = {},
-    rich_text_patterns = {}
-}
-
-function translator:add_element(element, property, rich_text_format)
-    if not element then return end
-    local id = tostring(element)
-    if not self.original_texts[id] then
-        self.original_texts[id] = element[property]
-    end
-    self.text_elements[id] = {elem = element, prop = property}
-    if rich_text_format then
-        self.rich_text_patterns[id] = rich_text_format
-    end
-end
-
-function translator:strip_rich_text(text)
-    if not text then return "" end
-    local plain = text:gsub("<[^>]+>", "")
-    return plain
-end
-
-function translator:apply_rich_text(text, pattern)
-    if not pattern then return text end
-    return string.format(pattern, text)
-end
-
-function translator:translate_all()
-    if not self.enabled or self.current_lang == "en" then
-        for id, data in pairs(self.text_elements) do
-            if data.elem and self.original_texts[id] then
-                pcall(function()
-                    data.elem[data.prop] = self.original_texts[id]
-                end)
-            end
-        end
-        return
-    end
-    
-    local translated_count = 0
-    local total_count = 0
-    
-    for id, data in pairs(self.text_elements) do
-        if data.elem and self.original_texts[id] then
-            total_count = total_count + 1
-            local success = pcall(function()
-                local original = self.original_texts[id]
-                local plain_text = self:strip_rich_text(original)
-                
-                if plain_text ~= "" and plain_text ~= " " then
-                    local translated = translate(plain_text, self.current_lang, "auto")
-                    
-                    if translated and translated ~= "" and translated ~= plain_text then
-                        if self.rich_text_patterns[id] then
-                            translated = self:apply_rich_text(translated, self.rich_text_patterns[id])
-                        end
-                        data.elem[data.prop] = translated
-                        translated_count = translated_count + 1
-                    end
-                end
-            end)
-        end
-    end
-    
-    print(string.format("[Translator] Translated %d/%d elements to %s", translated_count, total_count, self.current_lang))
-end
-
-getgenv().translator = translator
---
-
 -- Library functions 
 -- Misc functions
     function library:tween(obj, properties, easing_style, time) 
@@ -753,7 +595,6 @@ getgenv().translator = translator
                 TextSize = 30;
                 BackgroundColor3 = rgb(255, 255, 255)
             }); library:apply_theme(items[ "title" ], "accent", "TextColor3");
-            translator:add_element(items[ "title" ], "Text", "<u>%s</u>");
             
             items[ "multi_holder" ] = library:create( "Frame" , {
                 Parent = items[ "main" ];
@@ -765,72 +606,6 @@ getgenv().translator = translator
                 BorderSizePixel = 0;
                 BackgroundColor3 = rgb(255, 255, 255)
             }); cfg.multi_holder = items[ "multi_holder" ];
-            
-            items[ "burger_button" ] = library:create( "TextButton" , {
-                Parent = items[ "multi_holder" ];
-                Name = "\0";
-                Text = "";
-                AutoButtonColor = false;
-                Position = dim2(0, 10, 0.5, -12);
-                Size = dim2(0, 28, 0, 28);
-                BackgroundColor3 = rgb(25, 25, 29);
-                BorderSizePixel = 0;
-                ZIndex = 5
-            });
-            
-            library:create( "UICorner" , {
-                Parent = items[ "burger_button" ];
-                CornerRadius = dim(0, 6)
-            });
-            
-            library:create( "UIStroke" , {
-                Color = themes.preset.accent;
-                Parent = items[ "burger_button" ];
-                Thickness = 1;
-                ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-            }); library:apply_theme(items[ "burger_button" ]:FindFirstChildOfClass("UIStroke"), "accent", "Color");
-            
-            items[ "burger_icon" ] = library:create( "Frame" , {
-                Parent = items[ "burger_button" ];
-                Name = "\0";
-                Position = dim2(0, 6, 0, 8);
-                Size = dim2(0, 16, 0, 2);
-                BackgroundColor3 = themes.preset.accent;
-                BorderSizePixel = 0
-            }); library:apply_theme(items[ "burger_icon" ], "accent", "BackgroundColor3");
-            
-            library:create( "UICorner" , {
-                Parent = items[ "burger_icon" ];
-                CornerRadius = dim(0, 1)
-            });
-            
-            items[ "burger_line2" ] = library:create( "Frame" , {
-                Parent = items[ "burger_button" ];
-                Name = "\0";
-                Position = dim2(0, 6, 0, 13);
-                Size = dim2(0, 16, 0, 2);
-                BackgroundColor3 = themes.preset.accent;
-                BorderSizePixel = 0
-            }); library:apply_theme(items[ "burger_line2" ], "accent", "BackgroundColor3");
-            
-            library:create( "UICorner" , {
-                Parent = items[ "burger_line2" ];
-                CornerRadius = dim(0, 1)
-            });
-            
-            items[ "burger_line3" ] = library:create( "Frame" , {
-                Parent = items[ "burger_button" ];
-                Name = "\0";
-                Position = dim2(0, 6, 0, 18);
-                Size = dim2(0, 16, 0, 2);
-                BackgroundColor3 = themes.preset.accent;
-                BorderSizePixel = 0
-            }); library:apply_theme(items[ "burger_line3" ], "accent", "BackgroundColor3");
-            
-            library:create( "UICorner" , {
-                Parent = items[ "burger_line3" ];
-                CornerRadius = dim(0, 1)
-            });
             
             library:create( "Frame" , {
                 AnchorPoint = vec2(0, 1);
@@ -975,34 +750,6 @@ getgenv().translator = translator
                 items[ "main" ].Active = true
                 items[ "main" ].Selectable = true
             end
-            
-            cfg.SidebarVisible = true
-            
-            function cfg.ToggleSidebar()
-                cfg.SidebarVisible = not cfg.SidebarVisible
-                
-                if cfg.SidebarVisible then
-                    library:tween(items[ "side_frame" ], {Position = dim2(0, 0, 0, 0)}, Enum.EasingStyle.Quad, 0.3)
-                    library:tween(items[ "multi_holder" ], {Position = dim2(0, 196, 0, 0), Size = dim2(1, -196, 0, 56)}, Enum.EasingStyle.Quad, 0.3)
-                    library:tween(items[ "global_fade" ], {Position = dim2(0, 196, 0, 56), Size = dim2(1, -196, 1, -81)}, Enum.EasingStyle.Quad, 0.3)
-                else
-                    library:tween(items[ "side_frame" ], {Position = dim2(0, -196, 0, 0)}, Enum.EasingStyle.Quad, 0.3)
-                    library:tween(items[ "multi_holder" ], {Position = dim2(0, 0, 0, 0), Size = dim2(1, 0, 0, 56)}, Enum.EasingStyle.Quad, 0.3)
-                    library:tween(items[ "global_fade" ], {Position = dim2(0, 0, 0, 56), Size = dim2(1, 0, 1, -81)}, Enum.EasingStyle.Quad, 0.3)
-                end
-                
-                if cfg.selected_tab and cfg.selected_tab[4] then
-                    local TabHolder = cfg.selected_tab[4]
-                    local TabHolderPosX = cfg.SidebarVisible and 196 or 0
-                    local SidebarOffset = cfg.SidebarVisible and -196 or 0
-                    
-                    library:tween(TabHolder, {Position = dim2(0, TabHolderPosX, 0, 56), Size = dim2(1, SidebarOffset, 1, -81)}, Enum.EasingStyle.Quad, 0.3)
-                end
-            end
-            
-            items[ "burger_button" ].MouseButton1Click:Connect(function()
-                cfg.ToggleSidebar()
-            end)
         end 
 
         if library.is_mobile then
@@ -1172,7 +919,6 @@ getgenv().translator = translator
                 ScrollBarImageColor3 = themes.preset.accent;
                 VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
             }); library:apply_theme(items[ "tab_holder" ], "accent", "ScrollBarImageColor3");
-            cfg.tab_holder = items[ "tab_holder" ];
 
             library:create( "UIListLayout" , {
                 Parent = items[ "tab_holder" ];
@@ -1227,7 +973,6 @@ getgenv().translator = translator
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-                translator:add_element(items[ "name" ], "Text");
                 
                 library:create( "UIPadding" , {
                     Parent = items[ "name" ];
@@ -1466,16 +1211,10 @@ getgenv().translator = translator
             library:tween(items[ "button" ], {BackgroundTransparency = 0})
             library:tween(items[ "icon" ], {ImageColor3 = themes.preset.accent})
             library:tween(items[ "name" ], {TextColor3 = rgb(255, 255, 255)})
-            
-            local SidebarOffset = self.SidebarVisible and -196 or 0
-            library:tween(items[ "tab_holder" ], {Size = dim2(1, SidebarOffset, 1, -81)}, Enum.EasingStyle.Quad, 0.4)
+            library:tween(items[ "tab_holder" ], {Size = dim2(1, -196, 1, -81)}, Enum.EasingStyle.Quad, 0.4)
             
             items[ "tab_holder" ].Visible = true 
             items[ "tab_holder" ].Parent = self.items[ "main" ]
-            
-            local TabHolderPosX = self.SidebarVisible and 196 or 0
-            items[ "tab_holder" ].Position = dim2(0, TabHolderPosX, 0, 56)
-            
             items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.None
             items[ "tab_holder" ].CanvasSize = dim2(0,0,0,5000)
             items[ "tab_holder" ].ScrollBarThickness = library.is_mobile and 6 or 3
@@ -1764,7 +1503,6 @@ getgenv().translator = translator
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "section_title" ], "Text");
             
             library:create( "Frame" , {
                 AnchorPoint = vec2(0, 1);
@@ -1936,13 +1674,14 @@ getgenv().translator = translator
     end  
 
     function library:toggle(options) 
+        local rand = math.random(1, 2) 
         local cfg = {
             enabled = options.enabled or nil,
             name = options.name or "Toggle",
             info = options.info or nil,
             flag = options.flag or library:next_flag(),
             
-            type = options.type and string.lower(options.type) or "toggle";
+            type = options.type and string.lower(options.type) or rand == 1 and "toggle" or "checkbox"; -- "toggle", "checkbox"
 
             default = options.default or false,
             folding = options.folding or false, 
@@ -1985,7 +1724,6 @@ getgenv().translator = translator
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "name" ], "Text");
 
             if cfg.info then 
                 items[ "info" ] = library:create( "TextLabel" , {
@@ -2005,7 +1743,6 @@ getgenv().translator = translator
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-                translator:add_element(items[ "info" ], "Text");
             end 
             
             library:create( "UIPadding" , {
@@ -2253,7 +1990,6 @@ getgenv().translator = translator
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "name" ], "Text");
             
             if cfg.info then 
                 items[ "info" ] = library:create( "TextLabel" , {
@@ -2273,7 +2009,6 @@ getgenv().translator = translator
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-                translator:add_element(items[ "info" ], "Text");
             end 
 
             library:create( "UIPadding" , {
@@ -2484,7 +2219,6 @@ getgenv().translator = translator
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-                translator:add_element(items[ "name" ], "Text");
                 
                 if cfg.info then 
                     items[ "info" ] = library:create( "TextLabel" , {
@@ -2504,7 +2238,6 @@ getgenv().translator = translator
                         TextSize = 16;
                         BackgroundColor3 = rgb(255, 255, 255)
                     });
-                    translator:add_element(items[ "info" ], "Text");
                 end 
 
                 library:create( "UIPadding" , {
@@ -2827,7 +2560,6 @@ getgenv().translator = translator
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "name" ], "Text");
 
             if cfg.info then 
                 items[ "info" ] = library:create( "TextLabel" , {
@@ -2847,7 +2579,6 @@ getgenv().translator = translator
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-                translator:add_element(items[ "info" ], "Text");
             end 
             
             library:create( "UIPadding" , {
@@ -3557,7 +3288,6 @@ getgenv().translator = translator
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
-                translator:add_element(items[ "name" ], "Text");
                 
                 library:create( "UIPadding" , {
                     Parent = items[ "name" ];
@@ -3892,8 +3622,7 @@ getgenv().translator = translator
                 AutomaticSize = Enum.AutomaticSize.XY;
                 TextSize = 14;
                 BackgroundColor3 = rgb(255, 255, 255)
-            }); library:apply_theme(items[ "name" ], "accent", "BackgroundColor3");
-            translator:add_element(items[ "name" ], "Text");                            
+            }); library:apply_theme(items[ "name" ], "accent", "BackgroundColor3");                            
         end 
 
         items[ "button" ].MouseButton1Click:Connect(function()
@@ -4004,152 +3733,7 @@ getgenv().translator = translator
             cfg.set_visible(cfg.open)
         end)
 
-        cfg = setmetatable(cfg, library)
-        
-        task.spawn(function()
-            task.wait(0.1)
-            local lang_label = library:create("TextLabel", {
-                FontFace = fonts.font;
-                TextColor3 = rgb(245, 245, 245);
-                Text = "Language";
-                Parent = items["elements"];
-                Size = dim2(1, 0, 0, 20);
-                BackgroundTransparency = 1;
-                TextXAlignment = Enum.TextXAlignment.Left;
-                TextSize = 16;
-            })
-            translator:add_element(lang_label, "Text")
-            
-            local lang_dropdown_holder = library:create("Frame", {
-                Parent = items["elements"];
-                Size = dim2(1, 0, 0, 30);
-                BackgroundTransparency = 1;
-            })
-            
-            local lang_dropdown_btn = library:create("TextButton", {
-                FontFace = fonts.small;
-                TextColor3 = rgb(86, 86, 87);
-                Text = "English";
-                Parent = lang_dropdown_holder;
-                Size = dim2(1, -8, 1, 0);
-                Position = dim2(0, 4, 0, 0);
-                BackgroundColor3 = rgb(33, 33, 35);
-                BorderSizePixel = 0;
-                TextSize = 14;
-                AutoButtonColor = false;
-            })
-            
-            library:create("UICorner", {
-                Parent = lang_dropdown_btn;
-                CornerRadius = dim(0, 6)
-            })
-            
-            library:create("UIPadding", {
-                Parent = lang_dropdown_btn;
-                PaddingLeft = dim(0, 8);
-                PaddingRight = dim(0, 8);
-            })
-            
-            local dropdown_items = library:create("Frame", {
-                Parent = library["items"];
-                Position = dim2(0, 0, 0, 0);
-                Size = dim2(0, 0, 0, 0);
-                BackgroundColor3 = rgb(33, 33, 35);
-                BorderSizePixel = 0;
-                ClipsDescendants = true;
-                ZIndex = 1000;
-            })
-            
-            library:create("UICorner", {
-                Parent = dropdown_items;
-                CornerRadius = dim(0, 6)
-            })
-            
-            local dropdown_list = library:create("ScrollingFrame", {
-                Parent = dropdown_items;
-                Size = dim2(1, -6, 1, -6);
-                Position = dim2(0, 3, 0, 3);
-                BackgroundTransparency = 1;
-                ScrollBarThickness = 2;
-                BorderSizePixel = 0;
-                AutomaticCanvasSize = Enum.AutomaticSize.Y;
-            })
-            
-            library:create("UIListLayout", {
-                Parent = dropdown_list;
-                Padding = dim(0, 2);
-                SortOrder = Enum.SortOrder.LayoutOrder
-            })
-            
-            local languages = {
-                "English", "Spanish", "French", "German", "Japanese", "Korean", 
-                "Chinese Simplified", "Russian", "Portuguese", "Italian", "Arabic", 
-                "Hindi", "Thai", "Vietnamese", "Turkish", "Dutch", "Polish", 
-                "Swedish", "Finnish", "Norwegian"
-            }
-            
-            local lang_map = {
-                ["English"] = "en", ["Spanish"] = "es", ["French"] = "fr",
-                ["German"] = "de", ["Japanese"] = "ja", ["Korean"] = "ko",
-                ["Chinese Simplified"] = "zh-cn", ["Russian"] = "ru",
-                ["Portuguese"] = "pt", ["Italian"] = "it", ["Arabic"] = "ar",
-                ["Hindi"] = "hi", ["Thai"] = "th", ["Vietnamese"] = "vi",
-                ["Turkish"] = "tr", ["Dutch"] = "nl", ["Polish"] = "pl",
-                ["Swedish"] = "sv", ["Finnish"] = "fi", ["Norwegian"] = "no"
-            }
-            
-            local dropdown_open = false
-            
-            for _, lang in ipairs(languages) do
-                local lang_btn = library:create("TextButton", {
-                    FontFace = fonts.small;
-                    TextColor3 = rgb(72, 72, 73);
-                    Text = lang;
-                    Parent = dropdown_list;
-                    Size = dim2(1, 0, 0, 24);
-                    BackgroundTransparency = 1;
-                    TextSize = 14;
-                    TextXAlignment = Enum.TextXAlignment.Left;
-                })
-                
-                library:create("UIPadding", {
-                    Parent = lang_btn;
-                    PaddingLeft = dim(0, 8);
-                })
-                
-                lang_btn.MouseButton1Click:Connect(function()
-                    lang_dropdown_btn.Text = lang
-                    translator.current_lang = lang_map[lang] or "en"
-                    translator.enabled = (translator.current_lang ~= "en")
-                    translator:translate_all()
-                    
-                    library:tween(dropdown_items, {Size = dim2(0, 0, 0, 0)})
-                    dropdown_open = false
-                end)
-                
-                lang_btn.MouseEnter:Connect(function()
-                    library:tween(lang_btn, {TextColor3 = rgb(245, 245, 245)})
-                end)
-                
-                lang_btn.MouseLeave:Connect(function()
-                    library:tween(lang_btn, {TextColor3 = rgb(72, 72, 73)})
-                end)
-            end
-            
-            lang_dropdown_btn.MouseButton1Click:Connect(function()
-                dropdown_open = not dropdown_open
-                if dropdown_open then
-                    local btn_pos = lang_dropdown_btn.AbsolutePosition
-                    local btn_size = lang_dropdown_btn.AbsoluteSize
-                    dropdown_items.Position = dim2(0, btn_pos.X, 0, btn_pos.Y + btn_size.Y + 5)
-                    library:tween(dropdown_items, {Size = dim2(0, btn_size.X, 0, math.min(200, #languages * 26))})
-                else
-                    library:tween(dropdown_items, {Size = dim2(0, 0, 0, 0)})
-                end
-            end)
-        end)
-
-        return cfg
+        return setmetatable(cfg, library)
     end 
 
     function library:list(properties) 
@@ -4348,7 +3932,6 @@ getgenv().translator = translator
                 TextSize = 14;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "title" ], "Text");
             
             library:create( "UICorner" , {
                 Parent = items[ "notification" ];
@@ -4371,7 +3954,6 @@ getgenv().translator = translator
                 TextSize = 14;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
-            translator:add_element(items[ "info" ], "Text");
             
             library:create( "UIPadding" , {
                 PaddingBottom = dim(0, 17);
@@ -4430,13 +4012,6 @@ getgenv().translator = translator
     end
 
     function library:unload()
-        if self.unloading then return end
-        self.unloading = true
-
-        if self._onUnloadCallback then
-            pcall(self._onUnloadCallback)
-        end
-        
         if self.items then
             pcall(function() self.items:Destroy() end)
         end
@@ -4452,6 +4027,10 @@ getgenv().translator = translator
 
         if self.notifications and self.notifications.holder then
             pcall(function() self.notifications.holder:Destroy() end)
+        end
+
+        if self._onUnloadCallback then
+            pcall(self._onUnloadCallback)
         end
 
         if getgenv().library == self then
