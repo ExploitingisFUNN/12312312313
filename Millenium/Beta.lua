@@ -347,28 +347,38 @@ function translator:translate_all()
     local total_count = 0
     
     for id, data in pairs(self.text_elements) do
-        if data.elem and self.original_texts[id] then
+        if data.elem and self.original_texts[id] and data.elem.Parent then
             total_count = total_count + 1
-            local success = pcall(function()
+            local success, err = pcall(function()
                 local original = self.original_texts[id]
                 local plain_text = self:strip_rich_text(original)
                 
-                if plain_text ~= "" and plain_text ~= " " then
+                if plain_text ~= "" and plain_text ~= " " and #plain_text > 0 then
                     local translated = translate(plain_text, self.current_lang, "auto")
                     
                     if translated and translated ~= "" and translated ~= plain_text then
                         if self.rich_text_patterns[id] then
                             translated = self:apply_rich_text(translated, self.rich_text_patterns[id])
+                        elseif original:match("<.->") then
+                            local prefix = original:match("^(<.->)")
+                            local suffix = original:match("(<.->)$")
+                            if prefix and suffix then
+                                translated = prefix .. translated .. suffix
+                            end
                         end
                         data.elem[data.prop] = translated
                         translated_count = translated_count + 1
                     end
                 end
             end)
+            if not success and err then
+                warn("[Translator Error]", err)
+            end
         end
     end
     
     print(string.format("[Translator] Translated %d/%d elements to %s", translated_count, total_count, self.current_lang))
+    task.wait(0.1)
 end
 
 getgenv().translator = translator
@@ -777,11 +787,11 @@ getgenv().translator = translator
                 Name = "\0";
                 Text = "";
                 AutoButtonColor = false;
-                Position = dim2(0, 10, 0.5, -12);
+                Position = dim2(0, 12, 0, 12);
                 Size = dim2(0, 32, 0, 32);
                 BackgroundColor3 = rgb(30, 30, 35);
                 BorderSizePixel = 0;
-                ZIndex = 5
+                ZIndex = 10
             });
             
             library:create( "UICorner" , {
@@ -1323,6 +1333,7 @@ getgenv().translator = translator
                                 TextSize = 16;
                                 BackgroundColor3 = rgb(255, 255, 255)
                             });
+                            translator:add_element(multi_items[ "name" ], "Text");
                             
                             library:create( "UIPadding" , {
                                 Parent = multi_items[ "name" ];
@@ -3427,6 +3438,7 @@ getgenv().translator = translator
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
+            translator:add_element(items[ "name" ], "Text");
             
             library:create( "UIPadding" , {
                 Parent = items[ "name" ];
