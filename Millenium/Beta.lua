@@ -4332,141 +4332,91 @@ end
             end
         })
 
-        local button_row1 = library:create( "Frame" , {
-            Parent = items[ "config_frame" ];
-            BackgroundTransparency = 1;
-            Name = "\0";
-            Size = dim2(1, 0, 0, 30);
-            BorderColor3 = rgb(0, 0, 0);
-            BorderSizePixel = 0;
-            BackgroundColor3 = rgb(255, 255, 255)
-        });
-        
-        library:create( "UIListLayout" , {
-            Parent = button_row1;
-            Padding = dim(0, 7);
-            SortOrder = Enum.SortOrder.LayoutOrder;
-            FillDirection = Enum.FillDirection.Horizontal
-        });
+        local save_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Save Config",
+            callback = function()
+                local config_name = flags[name_textbox.flag]
+                if config_name and config_name ~= "" then
+                    if library:save_config(config_name) then
+                        local configs = library:get_configs()
+                        if #configs == 0 then configs = {"No configs found"} end
+                        config_dropdown.refresh_options(configs)
+                        config_dropdown.set(config_name)
+                    end
+                end
+            end
+        })
 
-        local save_button = library:create( "TextButton" , {
-            FontFace = fonts.font;
-            TextColor3 = rgb(245, 245, 245);
-            BorderColor3 = rgb(0, 0, 0);
-            Text = "Save";
-            AutoButtonColor = false;
-            Parent = button_row1;
-            Name = "\0";
-            Size = dim2(0.33, -5, 1, 0);
-            BorderSizePixel = 0;
-            TextSize = 14;
-            BackgroundColor3 = rgb(33, 33, 35)
-        });
-        library:create( "UICorner" , { Parent = save_button; CornerRadius = dim(0, 6) });
-        library:create( "UIStroke" , { Parent = save_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
-        if getgenv().translator then getgenv().translator:add_element(save_button, "Text") end
+        local load_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Load Config",
+            callback = function()
+                local config_name = cfg.selected_config or flags[name_textbox.flag]
+                if config_name and config_name ~= "" and config_name ~= "No configs found" then
+                    library:load_config(config_name)
+                end
+            end
+        })
 
-        local load_button = library:create( "TextButton" , {
-            FontFace = fonts.font;
-            TextColor3 = rgb(245, 245, 245);
-            BorderColor3 = rgb(0, 0, 0);
-            Text = "Load";
-            AutoButtonColor = false;
-            Parent = button_row1;
-            Name = "\0";
-            Size = dim2(0.33, -5, 1, 0);
-            BorderSizePixel = 0;
-            TextSize = 14;
-            BackgroundColor3 = rgb(33, 33, 35)
-        });
-        library:create( "UICorner" , { Parent = load_button; CornerRadius = dim(0, 6) });
-        library:create( "UIStroke" , { Parent = load_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
-        if getgenv().translator then getgenv().translator:add_element(load_button, "Text") end
+        local delete_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Delete Config",
+            callback = function()
+                local config_name = cfg.selected_config or flags[name_textbox.flag]
+                if config_name and config_name ~= "" and config_name ~= "No configs found" then
+                    if library:delete_config(config_name) then
+                        local configs = library:get_configs()
+                        if #configs == 0 then configs = {"No configs found"} end
+                        config_dropdown.refresh_options(configs)
+                        config_dropdown.set(configs[1])
+                    end
+                end
+            end
+        })
 
-        local delete_button = library:create( "TextButton" , {
-            FontFace = fonts.font;
-            TextColor3 = rgb(245, 245, 245);
-            BorderColor3 = rgb(0, 0, 0);
-            Text = "Delete";
-            AutoButtonColor = false;
-            Parent = button_row1;
-            Name = "\0";
-            Size = dim2(0.33, -5, 1, 0);
-            BorderSizePixel = 0;
-            TextSize = 14;
-            BackgroundColor3 = rgb(33, 33, 35)
-        });
-        library:create( "UICorner" , { Parent = delete_button; CornerRadius = dim(0, 6) });
-        library:create( "UIStroke" , { Parent = delete_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
-        if getgenv().translator then getgenv().translator:add_element(delete_button, "Text") end
+        local duplicate_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Duplicate Config",
+            callback = function()
+                local old_name = cfg.selected_config
+                local new_name = flags[name_textbox.flag]
+                if old_name and old_name ~= "" and old_name ~= "No configs found" and new_name and new_name ~= "" and old_name ~= new_name then
+                    if library:duplicate_config(old_name, new_name) then
+                        local configs = library:get_configs()
+                        if #configs == 0 then configs = {"No configs found"} end
+                        config_dropdown.refresh_options(configs)
+                        config_dropdown.set(new_name)
+                    end
+                end
+            end
+        })
 
-        local button_row2 = library:create( "Frame" , {
-            Parent = items[ "config_frame" ];
-            BackgroundTransparency = 1;
-            Name = "\0";
-            Size = dim2(1, 0, 0, 30);
-            BorderColor3 = rgb(0, 0, 0);
-            BorderSizePixel = 0;
-            BackgroundColor3 = rgb(255, 255, 255)
-        });
-        
-        library:create( "UIListLayout" , {
-            Parent = button_row2;
-            Padding = dim(0, 7);
-            SortOrder = Enum.SortOrder.LayoutOrder;
-            FillDirection = Enum.FillDirection.Horizontal
-        });
+        local rename_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Rename Config",
+            callback = function()
+                local old_name = cfg.selected_config
+                local new_name = flags[name_textbox.flag]
+                if old_name and old_name ~= "" and old_name ~= "No configs found" and new_name and new_name ~= "" and old_name ~= new_name then
+                    if library:rename_config(old_name, new_name) then
+                        local configs = library:get_configs()
+                        if #configs == 0 then configs = {"No configs found"} end
+                        config_dropdown.refresh_options(configs)
+                        config_dropdown.set(new_name)
+                    end
+                end
+            end
+        })
 
-        local duplicate_button = library:create( "TextButton" , {
-            FontFace = fonts.font;
-            TextColor3 = rgb(245, 245, 245);
-            BorderColor3 = rgb(0, 0, 0);
-            Text = "Duplicate";
-            AutoButtonColor = false;
-            Parent = button_row2;
-            Name = "\0";
-            Size = dim2(0.33, -5, 1, 0);
-            BorderSizePixel = 0;
-            TextSize = 14;
-            BackgroundColor3 = rgb(33, 33, 35)
-        });
-        library:create( "UICorner" , { Parent = duplicate_button; CornerRadius = dim(0, 6) });
-        library:create( "UIStroke" , { Parent = duplicate_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
-        if getgenv().translator then getgenv().translator:add_element(duplicate_button, "Text") end
-
-        local rename_button = library:create( "TextButton" , {
-            FontFace = fonts.font;
-            TextColor3 = rgb(245, 245, 245);
-            BorderColor3 = rgb(0, 0, 0);
-            Text = "Rename";
-            AutoButtonColor = false;
-            Parent = button_row2;
-            Name = "\0";
-            Size = dim2(0.33, -5, 1, 0);
-            BorderSizePixel = 0;
-            TextSize = 14;
-            BackgroundColor3 = rgb(33, 33, 35)
-        });
-        library:create( "UICorner" , { Parent = rename_button; CornerRadius = dim(0, 6) });
-        library:create( "UIStroke" , { Parent = rename_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
-        if getgenv().translator then getgenv().translator:add_element(rename_button, "Text") end
-
-        local refresh_button = library:create( "TextButton" , {
-            FontFace = fonts.font;
-            TextColor3 = rgb(245, 245, 245);
-            BorderColor3 = rgb(0, 0, 0);
-            Text = "Refresh";
-            AutoButtonColor = false;
-            Parent = button_row2;
-            Name = "\0";
-            Size = dim2(0.33, -5, 1, 0);
-            BorderSizePixel = 0;
-            TextSize = 14;
-            BackgroundColor3 = rgb(33, 33, 35)
-        });
-        library:create( "UICorner" , { Parent = refresh_button; CornerRadius = dim(0, 6) });
-        library:create( "UIStroke" , { Parent = refresh_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
-        if getgenv().translator then getgenv().translator:add_element(refresh_button, "Text") end
+        local refresh_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Refresh List",
+            callback = function()
+                local configs = library:get_configs()
+                if #configs == 0 then configs = {"No configs found"} end
+                config_dropdown.refresh_options(configs)
+                notifications:create_notification({
+                    name = "Config List",
+                    info = "Refreshed config list",
+                    lifetime = 2
+                })
+            end
+        })
 
         local export_textbox = setmetatable({items = {elements = items[ "config_frame" ]}}, library):textbox({
             name = "Import/Export",
@@ -4475,56 +4425,48 @@ end
             flag = library:next_flag()
         })
 
-        local button_row3 = library:create( "Frame" , {
-            Parent = items[ "config_frame" ];
-            BackgroundTransparency = 1;
-            Name = "\0";
-            Size = dim2(1, 0, 0, 30);
-            BorderColor3 = rgb(0, 0, 0);
-            BorderSizePixel = 0;
-            BackgroundColor3 = rgb(255, 255, 255)
-        });
-        
-        library:create( "UIListLayout" , {
-            Parent = button_row3;
-            Padding = dim(0, 7);
-            SortOrder = Enum.SortOrder.LayoutOrder;
-            FillDirection = Enum.FillDirection.Horizontal
-        });
+        local export_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Export to Clipboard",
+            callback = function()
+                local config_name = cfg.selected_config or flags[name_textbox.flag]
+                if config_name and config_name ~= "" and config_name ~= "No configs found" then
+                    local exported = library:export_config(config_name)
+                    if exported then
+                        export_textbox.set(exported)
+                        if setclipboard then
+                            setclipboard(exported)
+                            notifications:create_notification({
+                                name = "Config Exported",
+                                info = "Copied to clipboard!",
+                                lifetime = 3
+                            })
+                        else
+                            notifications:create_notification({
+                                name = "Config Exported",
+                                info = "Copy from textbox",
+                                lifetime = 3
+                            })
+                        end
+                    end
+                end
+            end
+        })
 
-        local export_button = library:create( "TextButton" , {
-            FontFace = fonts.font;
-            TextColor3 = rgb(245, 245, 245);
-            BorderColor3 = rgb(0, 0, 0);
-            Text = "Export";
-            AutoButtonColor = false;
-            Parent = button_row3;
-            Name = "\0";
-            Size = dim2(0.5, -4, 1, 0);
-            BorderSizePixel = 0;
-            TextSize = 14;
-            BackgroundColor3 = rgb(33, 33, 35)
-        });
-        library:create( "UICorner" , { Parent = export_button; CornerRadius = dim(0, 6) });
-        library:create( "UIStroke" , { Parent = export_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
-        if getgenv().translator then getgenv().translator:add_element(export_button, "Text") end
-
-        local import_button = library:create( "TextButton" , {
-            FontFace = fonts.font;
-            TextColor3 = rgb(245, 245, 245);
-            BorderColor3 = rgb(0, 0, 0);
-            Text = "Import";
-            AutoButtonColor = false;
-            Parent = button_row3;
-            Name = "\0";
-            Size = dim2(0.5, -4, 1, 0);
-            BorderSizePixel = 0;
-            TextSize = 14;
-            BackgroundColor3 = rgb(33, 33, 35)
-        });
-        library:create( "UICorner" , { Parent = import_button; CornerRadius = dim(0, 6) });
-        library:create( "UIStroke" , { Parent = import_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
-        if getgenv().translator then getgenv().translator:add_element(import_button, "Text") end
+        local import_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Import from Textbox",
+            callback = function()
+                local import_data = flags[export_textbox.flag]
+                local config_name = flags[name_textbox.flag]
+                if import_data and import_data ~= "" and config_name and config_name ~= "" then
+                    if library:import_config(import_data, config_name) then
+                        local configs = library:get_configs()
+                        if #configs == 0 then configs = {"No configs found"} end
+                        config_dropdown.refresh_options(configs)
+                        config_dropdown.set(config_name)
+                    end
+                end
+            end
+        })
 
         local autoload_toggle = setmetatable({items = {elements = items[ "config_frame" ]}}, library):toggle({
             name = "Auto-load on startup",
@@ -4539,111 +4481,6 @@ end
                 end
             end
         })
-
-        save_button.MouseButton1Click:Connect(function()
-            local config_name = flags[name_textbox.flag]
-            if config_name and config_name ~= "" then
-                if library:save_config(config_name) then
-                    local configs = library:get_configs()
-                    if #configs == 0 then configs = {"No configs found"} end
-                    config_dropdown.refresh_options(configs)
-                    config_dropdown.set(config_name)
-                end
-            end
-        end)
-
-        load_button.MouseButton1Click:Connect(function()
-            local config_name = cfg.selected_config or flags[name_textbox.flag]
-            if config_name and config_name ~= "" and config_name ~= "No configs found" then
-                library:load_config(config_name)
-            end
-        end)
-
-        delete_button.MouseButton1Click:Connect(function()
-            local config_name = cfg.selected_config or flags[name_textbox.flag]
-            if config_name and config_name ~= "" and config_name ~= "No configs found" then
-                if library:delete_config(config_name) then
-                    local configs = library:get_configs()
-                    if #configs == 0 then configs = {"No configs found"} end
-                    config_dropdown.refresh_options(configs)
-                    config_dropdown.set(configs[1])
-                end
-            end
-        end)
-
-        duplicate_button.MouseButton1Click:Connect(function()
-            local old_name = cfg.selected_config
-            local new_name = flags[name_textbox.flag]
-            if old_name and old_name ~= "" and old_name ~= "No configs found" and new_name and new_name ~= "" and old_name ~= new_name then
-                if library:duplicate_config(old_name, new_name) then
-                    local configs = library:get_configs()
-                    if #configs == 0 then configs = {"No configs found"} end
-                    config_dropdown.refresh_options(configs)
-                    config_dropdown.set(new_name)
-                end
-            end
-        end)
-
-        rename_button.MouseButton1Click:Connect(function()
-            local old_name = cfg.selected_config
-            local new_name = flags[name_textbox.flag]
-            if old_name and old_name ~= "" and old_name ~= "No configs found" and new_name and new_name ~= "" and old_name ~= new_name then
-                if library:rename_config(old_name, new_name) then
-                    local configs = library:get_configs()
-                    if #configs == 0 then configs = {"No configs found"} end
-                    config_dropdown.refresh_options(configs)
-                    config_dropdown.set(new_name)
-                end
-            end
-        end)
-
-        refresh_button.MouseButton1Click:Connect(function()
-            local configs = library:get_configs()
-            if #configs == 0 then configs = {"No configs found"} end
-            config_dropdown.refresh_options(configs)
-            notifications:create_notification({
-                name = "Config List",
-                info = "Refreshed config list",
-                lifetime = 2
-            })
-        end)
-
-        export_button.MouseButton1Click:Connect(function()
-            local config_name = cfg.selected_config or flags[name_textbox.flag]
-            if config_name and config_name ~= "" and config_name ~= "No configs found" then
-                local exported = library:export_config(config_name)
-                if exported then
-                    export_textbox.set(exported)
-                    if setclipboard then
-                        setclipboard(exported)
-                        notifications:create_notification({
-                            name = "Config Exported",
-                            info = "Copied to clipboard!",
-                            lifetime = 3
-                        })
-                    else
-                        notifications:create_notification({
-                            name = "Config Exported",
-                            info = "Copy from textbox",
-                            lifetime = 3
-                        })
-                    end
-                end
-            end
-        end)
-
-        import_button.MouseButton1Click:Connect(function()
-            local import_data = flags[export_textbox.flag]
-            local config_name = flags[name_textbox.flag]
-            if import_data and import_data ~= "" and config_name and config_name ~= "" then
-                if library:import_config(import_data, config_name) then
-                    local configs = library:get_configs()
-                    if #configs == 0 then configs = {"No configs found"} end
-                    config_dropdown.refresh_options(configs)
-                    config_dropdown.set(config_name)
-                end
-            end
-        end)
 
         return setmetatable(cfg, library)
     end
