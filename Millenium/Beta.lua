@@ -71,11 +71,17 @@ getgenv().    library = {
         directory = "milenium",
         folders = {
             "/fonts",
+            "/configs",
         },
         flags = {},
         connections = {},   
         notifications = {notifs = {}},
-        current_open; 
+        current_open;
+        config = {
+            folder = "milenium/configs",
+            current = nil,
+            autoload_file = "milenium/autoload.txt"
+        }
     }
 
 local themes = {
@@ -1280,6 +1286,8 @@ end
             library[ "items" ].Enabled = bool
             if library[ "other" ] then library[ "other" ].Enabled = bool end
         end 
+        
+        library:load_autoload()
             
         return setmetatable(cfg, library)
     end 
@@ -4273,6 +4281,357 @@ end
         return setmetatable(cfg, library)
     end 
 
+    function library:config_manager(properties)
+        local cfg = {
+            items = {};
+            selected_config = nil;
+            autoload_enabled = false;
+        }
+
+        local items = cfg.items; do
+            items[ "config_frame" ] = library:create( "Frame" , {
+                Parent = self.items[ "elements" ];
+                BackgroundTransparency = 1;
+                Name = "\0";
+                Size = dim2(1, 0, 0, 0);
+                BorderColor3 = rgb(0, 0, 0);
+                BorderSizePixel = 0;
+                AutomaticSize = Enum.AutomaticSize.Y;
+                BackgroundColor3 = rgb(255, 255, 255)
+            });
+            
+            library:create( "UIListLayout" , {
+                Parent = items[ "config_frame" ];
+                Padding = dim(0, 10);
+                SortOrder = Enum.SortOrder.LayoutOrder
+            });
+        end
+
+        local name_textbox = setmetatable({items = {elements = items[ "config_frame" ]}}, library):textbox({
+            name = "Config Name",
+            placeholder = "Enter config name...",
+            default = "",
+            flag = library:next_flag()
+        })
+
+        local config_dropdown = setmetatable({items = {elements = items[ "config_frame" ]}}, library):dropdown({
+            name = "Select Config",
+            options = library:get_configs(),
+            default = library:get_configs()[1] or "None",
+            flag = library:next_flag(),
+            callback = function(selected)
+                cfg.selected_config = selected
+                name_textbox.set(selected)
+            end
+        })
+
+        local button_row1 = library:create( "Frame" , {
+            Parent = items[ "config_frame" ];
+            BackgroundTransparency = 1;
+            Name = "\0";
+            Size = dim2(1, 0, 0, 30);
+            BorderColor3 = rgb(0, 0, 0);
+            BorderSizePixel = 0;
+            BackgroundColor3 = rgb(255, 255, 255)
+        });
+        
+        library:create( "UIListLayout" , {
+            Parent = button_row1;
+            Padding = dim(0, 7);
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            FillDirection = Enum.FillDirection.Horizontal
+        });
+
+        local save_button = library:create( "TextButton" , {
+            FontFace = fonts.font;
+            TextColor3 = rgb(245, 245, 245);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = "Save";
+            AutoButtonColor = false;
+            Parent = button_row1;
+            Name = "\0";
+            Size = dim2(0.33, -5, 1, 0);
+            BorderSizePixel = 0;
+            TextSize = 14;
+            BackgroundColor3 = rgb(33, 33, 35)
+        });
+        library:create( "UICorner" , { Parent = save_button; CornerRadius = dim(0, 6) });
+        library:create( "UIStroke" , { Parent = save_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
+        if getgenv().translator then getgenv().translator:add_element(save_button, "Text") end
+
+        local load_button = library:create( "TextButton" , {
+            FontFace = fonts.font;
+            TextColor3 = rgb(245, 245, 245);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = "Load";
+            AutoButtonColor = false;
+            Parent = button_row1;
+            Name = "\0";
+            Size = dim2(0.33, -5, 1, 0);
+            BorderSizePixel = 0;
+            TextSize = 14;
+            BackgroundColor3 = rgb(33, 33, 35)
+        });
+        library:create( "UICorner" , { Parent = load_button; CornerRadius = dim(0, 6) });
+        library:create( "UIStroke" , { Parent = load_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
+        if getgenv().translator then getgenv().translator:add_element(load_button, "Text") end
+
+        local delete_button = library:create( "TextButton" , {
+            FontFace = fonts.font;
+            TextColor3 = rgb(245, 245, 245);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = "Delete";
+            AutoButtonColor = false;
+            Parent = button_row1;
+            Name = "\0";
+            Size = dim2(0.33, -5, 1, 0);
+            BorderSizePixel = 0;
+            TextSize = 14;
+            BackgroundColor3 = rgb(33, 33, 35)
+        });
+        library:create( "UICorner" , { Parent = delete_button; CornerRadius = dim(0, 6) });
+        library:create( "UIStroke" , { Parent = delete_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
+        if getgenv().translator then getgenv().translator:add_element(delete_button, "Text") end
+
+        local button_row2 = library:create( "Frame" , {
+            Parent = items[ "config_frame" ];
+            BackgroundTransparency = 1;
+            Name = "\0";
+            Size = dim2(1, 0, 0, 30);
+            BorderColor3 = rgb(0, 0, 0);
+            BorderSizePixel = 0;
+            BackgroundColor3 = rgb(255, 255, 255)
+        });
+        
+        library:create( "UIListLayout" , {
+            Parent = button_row2;
+            Padding = dim(0, 7);
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            FillDirection = Enum.FillDirection.Horizontal
+        });
+
+        local duplicate_button = library:create( "TextButton" , {
+            FontFace = fonts.font;
+            TextColor3 = rgb(245, 245, 245);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = "Duplicate";
+            AutoButtonColor = false;
+            Parent = button_row2;
+            Name = "\0";
+            Size = dim2(0.33, -5, 1, 0);
+            BorderSizePixel = 0;
+            TextSize = 14;
+            BackgroundColor3 = rgb(33, 33, 35)
+        });
+        library:create( "UICorner" , { Parent = duplicate_button; CornerRadius = dim(0, 6) });
+        library:create( "UIStroke" , { Parent = duplicate_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
+        if getgenv().translator then getgenv().translator:add_element(duplicate_button, "Text") end
+
+        local rename_button = library:create( "TextButton" , {
+            FontFace = fonts.font;
+            TextColor3 = rgb(245, 245, 245);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = "Rename";
+            AutoButtonColor = false;
+            Parent = button_row2;
+            Name = "\0";
+            Size = dim2(0.33, -5, 1, 0);
+            BorderSizePixel = 0;
+            TextSize = 14;
+            BackgroundColor3 = rgb(33, 33, 35)
+        });
+        library:create( "UICorner" , { Parent = rename_button; CornerRadius = dim(0, 6) });
+        library:create( "UIStroke" , { Parent = rename_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
+        if getgenv().translator then getgenv().translator:add_element(rename_button, "Text") end
+
+        local refresh_button = library:create( "TextButton" , {
+            FontFace = fonts.font;
+            TextColor3 = rgb(245, 245, 245);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = "Refresh";
+            AutoButtonColor = false;
+            Parent = button_row2;
+            Name = "\0";
+            Size = dim2(0.33, -5, 1, 0);
+            BorderSizePixel = 0;
+            TextSize = 14;
+            BackgroundColor3 = rgb(33, 33, 35)
+        });
+        library:create( "UICorner" , { Parent = refresh_button; CornerRadius = dim(0, 6) });
+        library:create( "UIStroke" , { Parent = refresh_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
+        if getgenv().translator then getgenv().translator:add_element(refresh_button, "Text") end
+
+        local export_textbox = setmetatable({items = {elements = items[ "config_frame" ]}}, library):textbox({
+            name = "Import/Export",
+            placeholder = "Paste config data here...",
+            default = "",
+            flag = library:next_flag()
+        })
+
+        local button_row3 = library:create( "Frame" , {
+            Parent = items[ "config_frame" ];
+            BackgroundTransparency = 1;
+            Name = "\0";
+            Size = dim2(1, 0, 0, 30);
+            BorderColor3 = rgb(0, 0, 0);
+            BorderSizePixel = 0;
+            BackgroundColor3 = rgb(255, 255, 255)
+        });
+        
+        library:create( "UIListLayout" , {
+            Parent = button_row3;
+            Padding = dim(0, 7);
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            FillDirection = Enum.FillDirection.Horizontal
+        });
+
+        local export_button = library:create( "TextButton" , {
+            FontFace = fonts.font;
+            TextColor3 = rgb(245, 245, 245);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = "Export";
+            AutoButtonColor = false;
+            Parent = button_row3;
+            Name = "\0";
+            Size = dim2(0.5, -4, 1, 0);
+            BorderSizePixel = 0;
+            TextSize = 14;
+            BackgroundColor3 = rgb(33, 33, 35)
+        });
+        library:create( "UICorner" , { Parent = export_button; CornerRadius = dim(0, 6) });
+        library:create( "UIStroke" , { Parent = export_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
+        if getgenv().translator then getgenv().translator:add_element(export_button, "Text") end
+
+        local import_button = library:create( "TextButton" , {
+            FontFace = fonts.font;
+            TextColor3 = rgb(245, 245, 245);
+            BorderColor3 = rgb(0, 0, 0);
+            Text = "Import";
+            AutoButtonColor = false;
+            Parent = button_row3;
+            Name = "\0";
+            Size = dim2(0.5, -4, 1, 0);
+            BorderSizePixel = 0;
+            TextSize = 14;
+            BackgroundColor3 = rgb(33, 33, 35)
+        });
+        library:create( "UICorner" , { Parent = import_button; CornerRadius = dim(0, 6) });
+        library:create( "UIStroke" , { Parent = import_button; Color = rgb(23,23,29); ApplyStrokeMode = Enum.ApplyStrokeMode.Border; Transparency = 0.3 });
+        if getgenv().translator then getgenv().translator:add_element(import_button, "Text") end
+
+        local autoload_toggle = setmetatable({items = {elements = items[ "config_frame" ]}}, library):toggle({
+            name = "Auto-load on startup",
+            default = false,
+            flag = library:next_flag(),
+            callback = function(enabled)
+                cfg.autoload_enabled = enabled
+                if enabled and cfg.selected_config then
+                    library:set_autoload(cfg.selected_config)
+                else
+                    library:set_autoload(nil)
+                end
+            end
+        })
+
+        save_button.MouseButton1Click:Connect(function()
+            local config_name = flags[name_textbox.flag]
+            if config_name and config_name ~= "" then
+                if library:save_config(config_name) then
+                    config_dropdown.refresh_options(library:get_configs())
+                    config_dropdown.set(config_name)
+                end
+            end
+        end)
+
+        load_button.MouseButton1Click:Connect(function()
+            local config_name = cfg.selected_config or flags[name_textbox.flag]
+            if config_name and config_name ~= "" then
+                library:load_config(config_name)
+            end
+        end)
+
+        delete_button.MouseButton1Click:Connect(function()
+            local config_name = cfg.selected_config or flags[name_textbox.flag]
+            if config_name and config_name ~= "" then
+                if library:delete_config(config_name) then
+                    config_dropdown.refresh_options(library:get_configs())
+                    local configs = library:get_configs()
+                    if #configs > 0 then
+                        config_dropdown.set(configs[1])
+                    end
+                end
+            end
+        end)
+
+        duplicate_button.MouseButton1Click:Connect(function()
+            local old_name = cfg.selected_config
+            local new_name = flags[name_textbox.flag]
+            if old_name and old_name ~= "" and new_name and new_name ~= "" and old_name ~= new_name then
+                if library:duplicate_config(old_name, new_name) then
+                    config_dropdown.refresh_options(library:get_configs())
+                    config_dropdown.set(new_name)
+                end
+            end
+        end)
+
+        rename_button.MouseButton1Click:Connect(function()
+            local old_name = cfg.selected_config
+            local new_name = flags[name_textbox.flag]
+            if old_name and old_name ~= "" and new_name and new_name ~= "" and old_name ~= new_name then
+                if library:rename_config(old_name, new_name) then
+                    config_dropdown.refresh_options(library:get_configs())
+                    config_dropdown.set(new_name)
+                end
+            end
+        end)
+
+        refresh_button.MouseButton1Click:Connect(function()
+            config_dropdown.refresh_options(library:get_configs())
+            notifications:create_notification({
+                name = "Config List",
+                info = "Refreshed config list",
+                lifetime = 2
+            })
+        end)
+
+        export_button.MouseButton1Click:Connect(function()
+            local config_name = cfg.selected_config or flags[name_textbox.flag]
+            if config_name and config_name ~= "" then
+                local exported = library:export_config(config_name)
+                if exported then
+                    export_textbox.set(exported)
+                    if setclipboard then
+                        setclipboard(exported)
+                        notifications:create_notification({
+                            name = "Config Exported",
+                            info = "Copied to clipboard!",
+                            lifetime = 3
+                        })
+                    else
+                        notifications:create_notification({
+                            name = "Config Exported",
+                            info = "Copy from textbox",
+                            lifetime = 3
+                        })
+                    end
+                end
+            end
+        end)
+
+        import_button.MouseButton1Click:Connect(function()
+            local import_data = flags[export_textbox.flag]
+            local config_name = flags[name_textbox.flag]
+            if import_data and import_data ~= "" and config_name and config_name ~= "" then
+                if library:import_config(import_data, config_name) then
+                    config_dropdown.refresh_options(library:get_configs())
+                    config_dropdown.set(config_name)
+                end
+            end
+        end)
+
+        return setmetatable(cfg, library)
+    end
+
 
 --
 
@@ -4462,6 +4821,415 @@ end
 
         if getgenv().library == self then
             getgenv().library = nil
+        end
+    end
+
+    function library:get_configs()
+        local configs = {}
+        local success, files = pcall(function()
+            return listfiles(library.config.folder)
+        end)
+        
+        if success and files then
+            for _, file in pairs(files) do
+                local name = file:match("([^/\\]+)%.json$")
+                if name then
+                    insert(configs, name)
+                end
+            end
+        end
+        
+        return configs
+    end
+
+    function library:save_config(name)
+        if not name or name == "" then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Config name cannot be empty",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        if name:match("[^%w%s_-]") then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Invalid characters in config name",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        local success, err = pcall(function()
+            local data = http_service:JSONEncode(library.flags)
+            local path = library.config.folder .. "/" .. name .. ".json"
+            writefile(path, data)
+            library.config.current = name
+        end)
+        
+        if success then
+            notifications:create_notification({
+                name = "Config Saved",
+                info = "Successfully saved: " .. name,
+                lifetime = 3
+            })
+            return true
+        else
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Failed to save config",
+                lifetime = 3
+            })
+            return false
+        end
+    end
+
+    function library:load_config(name)
+        if not name or name == "" then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Config name cannot be empty",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        local path = library.config.folder .. "/" .. name .. ".json"
+        
+        local success, result = pcall(function()
+            if not isfile(path) then
+                error("Config file not found")
+            end
+            
+            local data = readfile(path)
+            local decoded = http_service:JSONDecode(data)
+            
+            for flag, value in pairs(decoded) do
+                if library.flags[flag] ~= nil then
+                    local flag_obj = nil
+                    
+                    for _, section in pairs(getgenv()) do
+                        if type(section) == "table" and section.flag == flag and section.set then
+                            flag_obj = section
+                            break
+                        end
+                    end
+                    
+                    if flag_obj and flag_obj.set then
+                        pcall(function()
+                            flag_obj.set(value)
+                        end)
+                    else
+                        library.flags[flag] = value
+                    end
+                end
+            end
+            
+            library.config.current = name
+            return true
+        end)
+        
+        if success and result then
+            notifications:create_notification({
+                name = "Config Loaded",
+                info = "Successfully loaded: " .. name,
+                lifetime = 3
+            })
+            return true
+        else
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Failed to load config",
+                lifetime = 3
+            })
+            return false
+        end
+    end
+
+    function library:delete_config(name)
+        if not name or name == "" then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Config name cannot be empty",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        local path = library.config.folder .. "/" .. name .. ".json"
+        
+        local success = pcall(function()
+            if isfile(path) then
+                delfile(path)
+                if library.config.current == name then
+                    library.config.current = nil
+                end
+            else
+                error("Config not found")
+            end
+        end)
+        
+        if success then
+            notifications:create_notification({
+                name = "Config Deleted",
+                info = "Successfully deleted: " .. name,
+                lifetime = 3
+            })
+            return true
+        else
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Failed to delete config",
+                lifetime = 3
+            })
+            return false
+        end
+    end
+
+    function library:duplicate_config(old_name, new_name)
+        if not old_name or old_name == "" or not new_name or new_name == "" then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Config names cannot be empty",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        if new_name:match("[^%w%s_-]") then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Invalid characters in new name",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        local old_path = library.config.folder .. "/" .. old_name .. ".json"
+        local new_path = library.config.folder .. "/" .. new_name .. ".json"
+        
+        local success = pcall(function()
+            if not isfile(old_path) then
+                error("Source config not found")
+            end
+            
+            local data = readfile(old_path)
+            writefile(new_path, data)
+        end)
+        
+        if success then
+            notifications:create_notification({
+                name = "Config Duplicated",
+                info = "Created: " .. new_name,
+                lifetime = 3
+            })
+            return true
+        else
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Failed to duplicate config",
+                lifetime = 3
+            })
+            return false
+        end
+    end
+
+    function library:rename_config(old_name, new_name)
+        if not old_name or old_name == "" or not new_name or new_name == "" then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Config names cannot be empty",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        if new_name:match("[^%w%s_-]") then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Invalid characters in new name",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        local old_path = library.config.folder .. "/" .. old_name .. ".json"
+        local new_path = library.config.folder .. "/" .. new_name .. ".json"
+        
+        local success = pcall(function()
+            if not isfile(old_path) then
+                error("Source config not found")
+            end
+            
+            local data = readfile(old_path)
+            writefile(new_path, data)
+            delfile(old_path)
+            
+            if library.config.current == old_name then
+                library.config.current = new_name
+            end
+        end)
+        
+        if success then
+            notifications:create_notification({
+                name = "Config Renamed",
+                info = "Renamed to: " .. new_name,
+                lifetime = 3
+            })
+            return true
+        else
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Failed to rename config",
+                lifetime = 3
+            })
+            return false
+        end
+    end
+
+    function library:export_config(name)
+        if not name or name == "" then
+            return nil
+        end
+        
+        local path = library.config.folder .. "/" .. name .. ".json"
+        
+        local success, result = pcall(function()
+            if not isfile(path) then
+                error("Config not found")
+            end
+            
+            local data = readfile(path)
+            local encoded = game:GetService("HttpService"):JSONEncode({
+                version = "1.0",
+                name = name,
+                data = data
+            })
+            
+            local b64 = ""
+            local b = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+            
+            for i = 1, #encoded, 3 do
+                local c1, c2, c3 = encoded:byte(i, i + 2)
+                local n = c1 * 65536 + (c2 or 0) * 256 + (c3 or 0)
+                local n1 = math.floor(n / 262144)
+                local n2 = math.floor((n % 262144) / 4096)
+                local n3 = math.floor((n % 4096) / 64)
+                local n4 = n % 64
+                b64 = b64 .. b:sub(n1 + 1, n1 + 1) .. b:sub(n2 + 1, n2 + 1) .. 
+                      (c2 and b:sub(n3 + 1, n3 + 1) or "=") .. (c3 and b:sub(n4 + 1, n4 + 1) or "=")
+            end
+            
+            return b64
+        end)
+        
+        if success then
+            return result
+        else
+            notifications:create_notification({
+                name = "Export Error",
+                info = "Failed to export config",
+                lifetime = 3
+            })
+            return nil
+        end
+    end
+
+    function library:import_config(data, name)
+        if not data or data == "" or not name or name == "" then
+            notifications:create_notification({
+                name = "Import Error",
+                info = "Invalid import data or name",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        if name:match("[^%w%s_-]") then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Invalid characters in config name",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        local success = pcall(function()
+            local b = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+            local decoded = ""
+            
+            data = data:gsub("[^" .. b .. "=]", "")
+            
+            for i = 1, #data, 4 do
+                local n1 = b:find(data:sub(i, i)) - 1
+                local n2 = b:find(data:sub(i + 1, i + 1)) - 1
+                local n3 = data:sub(i + 2, i + 2) == "=" and 0 or (b:find(data:sub(i + 2, i + 2)) - 1)
+                local n4 = data:sub(i + 3, i + 3) == "=" and 0 or (b:find(data:sub(i + 3, i + 3)) - 1)
+                
+                local n = n1 * 262144 + n2 * 4096 + n3 * 64 + n4
+                local c1 = math.floor(n / 65536)
+                local c2 = math.floor((n % 65536) / 256)
+                local c3 = n % 256
+                
+                decoded = decoded .. string.char(c1)
+                if data:sub(i + 2, i + 2) ~= "=" then
+                    decoded = decoded .. string.char(c2)
+                end
+                if data:sub(i + 3, i + 3) ~= "=" then
+                    decoded = decoded .. string.char(c3)
+                end
+            end
+            
+            local config_data = http_service:JSONDecode(decoded)
+            local path = library.config.folder .. "/" .. name .. ".json"
+            writefile(path, config_data.data)
+        end)
+        
+        if success then
+            notifications:create_notification({
+                name = "Config Imported",
+                info = "Successfully imported: " .. name,
+                lifetime = 3
+            })
+            return true
+        else
+            notifications:create_notification({
+                name = "Import Error",
+                info = "Failed to import config",
+                lifetime = 3
+            })
+            return false
+        end
+    end
+
+    function library:set_autoload(name)
+        local success = pcall(function()
+            if name and name ~= "" then
+                writefile(library.config.autoload_file, name)
+            else
+                if isfile(library.config.autoload_file) then
+                    delfile(library.config.autoload_file)
+                end
+            end
+        end)
+        
+        return success
+    end
+
+    function library:load_autoload()
+        local success, name = pcall(function()
+            if isfile(library.config.autoload_file) then
+                return readfile(library.config.autoload_file)
+            end
+            return nil
+        end)
+        
+        if success and name and name ~= "" then
+            task.spawn(function()
+                task.wait(0.5)
+                library:load_config(name)
+            end)
         end
     end
 
