@@ -217,15 +217,6 @@ end
 --
 
 -- Google Translate Integration
-local function split(str, delimiter)
-    local result = {};
-    if str == nil or str == "" then return result end
-    for match in (str..delimiter):gmatch("(.-)"..delimiter) do
-        table.insert(result, match);
-    end
-    return result;
-end
-
 local function req(opt)
     local fn=(syn and syn.request) or (http and http.request) or http_request or request
     if fn then return fn(opt) end
@@ -322,29 +313,11 @@ local function translate(txt,tgt,src)
             local arr=jD((res.Body or ""):match("%[.-%]\n"))
             if not arr then return nil end
             local decoded = jD(arr[1][3])
-            
-            if not decoded or not decoded[2] or not decoded[2][1] or not decoded[2][1][1] or not decoded[2][1][1][6] then
-                return nil
-            end
-
-            local lines_data = decoded[2][1][1][6]
-            local translated_lines = {}
-            
-            for _, line_group in ipairs(lines_data) do
-                local line_parts = {}
-                for _, part in ipairs(line_group) do
-                    if part[1] then
-                        table.insert(line_parts, part[1])
-                    end
-                end
-                table.insert(translated_lines, table.concat(line_parts))
-            end
-
-            return table.concat(translated_lines, "\n")
+            if not decoded then return nil end
+            return decoded[2][1][1][6][1][1]
         end)
         
-        if not ok then
-            warn("[Translator] Failed to parse response:", out)
+        if not ok then 
             return nil 
         end
         return out
@@ -399,7 +372,6 @@ end
 
 function translator:translate_all()
     if not self.enabled or self.current_lang == "en" then
-        print("[Translator] Restoring original text...")
         for id, data in pairs(self.text_elements) do
             if data.elem and self.original_texts[id] then
                 pcall(function()
@@ -410,66 +382,67 @@ function translator:translate_all()
         return
     end
     
-    print(string.format("[Translator] Starting translation to %s...", self.current_lang))
-    
     task.spawn(function()
         local texts_to_translate = {}
         local element_map = {}
-
+        
         for id, data in pairs(self.text_elements) do
             if data.elem and self.original_texts[id] and data.elem.Parent then
                 local original = self.original_texts[id]
                 local plain_text = self:strip_rich_text(original)
                 
-                if plain_text and #plain_text > 0 and not plain_text:match("^%s*$") then
+                if plain_text ~= "" and plain_text ~= " " and #plain_text > 0 then
                     table.insert(texts_to_translate, plain_text)
                     table.insert(element_map, {
                         id = id,
-                        original_full_text = original,
-                        elem_data = data
+                        data = data,
+                        original = original
                     })
                 end
             end
         end
-
-        if #texts_to_translate == 0 then
-            print("[Translator] No text to translate.")
+        
+        if #texts_to_translate == 0 then return end
+        
+        local combined = table.concat(texts_to_translate, "\n")
+        local translated_combined = translate(combined, self.current_lang, "auto")
+        
+        if not translated_combined then
+            warn("[Translator] Translation failed")
             return
         end
-
-        local combined_text = table.concat(texts_to_translate, "\n")
-        local translated_combined_text = translate(combined_text, self.current_lang, "auto")
-        local translated_texts = split(translated_combined_text, "\n")
-
-        if #translated_texts ~= #texts_to_translate then
-            warn(string.format("[Translator] Mismatch: Got %d translations for %d texts. Aborting.", #translated_texts, #texts_to_translate))
-            return
+        
+        local translated_lines = {}
+        for line in translated_combined:gmatch("[^\n]+") do
+            table.insert(translated_lines, line)
         end
-
+        
         local translated_count = 0
-        for i, translated_text in ipairs(translated_texts) do
-            local map_item = element_map[i]
-            local id = map_item.id
-            local original_full_text = map_item.original_full_text
-            local data = map_item.elem_data
+        for i = 1, math.min(#translated_lines, #element_map) do
+            local map = element_map[i]
+            local translated_text = translated_lines[i]
             
-            if translated_text and translated_text ~= "" and translated_text ~= texts_to_translate[i] then
+            if translated_text and translated_text ~= texts_to_translate[i] then
                 local final_text = translated_text
-                if self.rich_text_patterns[id] then
-                    final_text = self:apply_rich_text(final_text, self.rich_text_patterns[id])
-                elseif original_full_text:match("<.->") then
-                    local prefix = original_full_text:match("^(<.->)")
-                    local suffix = original_full_text:match("(<.->)$")
+                
+                if self.rich_text_patterns[map.id] then
+                    final_text = self:apply_rich_text(final_text, self.rich_text_patterns[map.id])
+                elseif map.original:match("<.->") then
+                    local prefix = map.original:match("^(<.->)")
+                    local suffix = map.original:match("(<.->)$")
                     if prefix and suffix then
                         final_text = prefix .. final_text .. suffix
                     end
                 end
-                data.elem[data.prop] = final_text
-                translated_count = translated_count + 1
+                
+                pcall(function()
+                    map.data.elem[map.data.prop] = final_text
+                    translated_count = translated_count + 1
+                end)
             end
         end
         
-        print(string.format("[Translator] Complete: %d translated, %d failed, %d total", translated_count, #texts_to_translate - translated_count, #texts_to_translate))
+        print(string.format("[Translator] Translated %d/%d elements in one request", translated_count, #element_map))
     end)
 end
 
