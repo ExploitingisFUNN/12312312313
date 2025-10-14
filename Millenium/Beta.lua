@@ -404,45 +404,65 @@ function translator:translate_all()
         
         if #texts_to_translate == 0 then return end
         
-        local combined = table.concat(texts_to_translate, "\n")
-        local translated_combined = translate(combined, self.current_lang, "auto")
-        
-        if not translated_combined then
-            warn("[Translator] Translation failed")
-            return
-        end
-        
-        local translated_lines = {}
-        for line in translated_combined:gmatch("[^\n]+") do
-            table.insert(translated_lines, line)
-        end
-        
         local translated_count = 0
-        for i = 1, math.min(#translated_lines, #element_map) do
-            local map = element_map[i]
-            local translated_text = translated_lines[i]
+        local batch_size = 10
+        
+        for batch_start = 1, #texts_to_translate, batch_size do
+            local batch_end = math.min(batch_start + batch_size - 1, #texts_to_translate)
+            local batch_texts = {}
             
-            if translated_text and translated_text ~= texts_to_translate[i] then
-                local final_text = translated_text
-                
-                if self.rich_text_patterns[map.id] then
-                    final_text = self:apply_rich_text(final_text, self.rich_text_patterns[map.id])
-                elseif map.original:match("<.->") then
-                    local prefix = map.original:match("^(<.->)")
-                    local suffix = map.original:match("(<.->)$")
-                    if prefix and suffix then
-                        final_text = prefix .. final_text .. suffix
+            for i = batch_start, batch_end do
+                table.insert(batch_texts, texts_to_translate[i])
+            end
+            
+            local separator = " §§§ "
+            local combined = table.concat(batch_texts, separator)
+            local translated_combined = translate(combined, self.current_lang, "auto")
+            
+            if translated_combined and translated_combined ~= "" then
+                local translated_parts = {}
+                for part in translated_combined:gmatch("([^§]+)") do
+                    local trimmed = part:gsub("^%s*", ""):gsub("%s*$", "")
+                    if trimmed ~= "" then
+                        table.insert(translated_parts, trimmed)
                     end
                 end
                 
-                pcall(function()
-                    map.data.elem[map.data.prop] = final_text
-                    translated_count = translated_count + 1
-                end)
+                for i = 1, math.min(#translated_parts, #batch_texts) do
+                    local map_index = batch_start + i - 1
+                    local map = element_map[map_index]
+                    local translated_text = translated_parts[i]
+                    
+                    if map and translated_text then
+                        local final_text = translated_text
+                        
+                        if self.rich_text_patterns[map.id] then
+                            final_text = self:apply_rich_text(final_text, self.rich_text_patterns[map.id])
+                        elseif map.original:match("<.->") then
+                            local prefix = map.original:match("^(<.->)")
+                            local suffix = map.original:match("(<.->)$")
+                            if prefix and suffix then
+                                final_text = prefix .. final_text .. suffix
+                            end
+                        end
+                        
+                        local success = pcall(function()
+                            map.data.elem[map.data.prop] = final_text
+                        end)
+                        
+                        if success then
+                            translated_count = translated_count + 1
+                        end
+                    end
+                end
+            end
+            
+            if batch_end < #texts_to_translate then
+                task.wait(0.15)
             end
         end
         
-        print(string.format("[Translator] Translated %d/%d elements in one request", translated_count, #element_map))
+        print(string.format("[Translator] Translated %d/%d elements in %d batches", translated_count, #element_map, math.ceil(#element_map / batch_size)))
     end)
 end
 
