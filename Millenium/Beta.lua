@@ -217,6 +217,15 @@ end
 --
 
 -- Google Translate Integration
+local function split(str, delimiter)
+    local result = {};
+    if str == nil or str == "" then return result end
+    for match in (str..delimiter):gmatch("(.-)"..delimiter) do
+        table.insert(result, match);
+    end
+    return result;
+end
+
 local function req(opt)
     local fn=(syn and syn.request) or (http and http.request) or http_request or request
     if fn then return fn(opt) end
@@ -357,7 +366,6 @@ function translator:add_element(element, property, rich_text_format)
         self.rich_text_patterns[id] = rich_text_format
     end
     self.registered_count += 1
-    print(string.format("[Translator] Registered #%d: %s (%s)", self.registered_count, element:GetFullName(), property))
 end
 
 function translator:strip_rich_text(text)
@@ -385,54 +393,65 @@ function translator:translate_all()
     end
     
     print(string.format("[Translator] Starting translation to %s...", self.current_lang))
-    local translated_count = 0
-    local total_count = 0
-    local failed_count = 0
     
     task.spawn(function()
+        local texts_to_translate = {}
+        local element_map = {}
+
         for id, data in pairs(self.text_elements) do
             if data.elem and self.original_texts[id] and data.elem.Parent then
-                total_count = total_count + 1
+                local original = self.original_texts[id]
+                local plain_text = self:strip_rich_text(original)
                 
-                local success, err = pcall(function()
-                    local original = self.original_texts[id]
-                    local plain_text = self:strip_rich_text(original)
-                    
-                    if plain_text ~= "" and plain_text ~= " " and #plain_text > 0 then
-                        local translated = translate(plain_text, self.current_lang, "auto")
-                        
-                        if translated and translated ~= "" and translated ~= plain_text then
-                            if self.rich_text_patterns[id] then
-                                translated = self:apply_rich_text(translated, self.rich_text_patterns[id])
-                            elseif original:match("<.->") then
-                                local prefix = original:match("^(<.->)")
-                                local suffix = original:match("(<.->)$")
-                                if prefix and suffix then
-                                    translated = prefix .. translated .. suffix
-                                end
-                            end
-                            data.elem[data.prop] = translated
-                            translated_count = translated_count + 1
-                        else
-                            failed_count = failed_count + 1
-                        end
-                    end
-                end)
-                
-                if not success then
-                    failed_count = failed_count + 1
-                    if err then
-                        warn("[Translator Error]", err)
-                    end
-                end
-                
-                if total_count % 5 == 0 then
-                    task.wait(0.05)
+                if plain_text and #plain_text > 0 and not plain_text:match("^%s*$") then
+                    table.insert(texts_to_translate, plain_text)
+                    table.insert(element_map, {
+                        id = id,
+                        original_full_text = original,
+                        elem_data = data
+                    })
                 end
             end
         end
+
+        if #texts_to_translate == 0 then
+            print("[Translator] No text to translate.")
+            return
+        end
+
+        local combined_text = table.concat(texts_to_translate, "\n")
+        local translated_combined_text = translate(combined_text, self.current_lang, "auto")
+        local translated_texts = split(translated_combined_text, "\n")
+
+        if #translated_texts ~= #texts_to_translate then
+            warn(string.format("[Translator] Mismatch: Got %d translations for %d texts. Aborting.", #translated_texts, #texts_to_translate))
+            return
+        end
+
+        local translated_count = 0
+        for i, translated_text in ipairs(translated_texts) do
+            local map_item = element_map[i]
+            local id = map_item.id
+            local original_full_text = map_item.original_full_text
+            local data = map_item.elem_data
+            
+            if translated_text and translated_text ~= "" and translated_text ~= texts_to_translate[i] then
+                local final_text = translated_text
+                if self.rich_text_patterns[id] then
+                    final_text = self:apply_rich_text(final_text, self.rich_text_patterns[id])
+                elseif original_full_text:match("<.->") then
+                    local prefix = original_full_text:match("^(<.->)")
+                    local suffix = original_full_text:match("(<.->)$")
+                    if prefix and suffix then
+                        final_text = prefix .. final_text .. suffix
+                    end
+                end
+                data.elem[data.prop] = final_text
+                translated_count = translated_count + 1
+            end
+        end
         
-        print(string.format("[Translator] Complete: %d translated, %d failed, %d total", translated_count, failed_count, total_count))
+        print(string.format("[Translator] Complete: %d translated, %d failed, %d total", translated_count, #texts_to_translate - translated_count, #texts_to_translate))
     end)
 end
 
