@@ -4314,14 +4314,21 @@ end
             flag = library:next_flag()
         })
 
+        local available_configs = library:get_configs()
+        if #available_configs == 0 then
+            available_configs = {"No configs found"}
+        end
+
         local config_dropdown = setmetatable({items = {elements = items[ "config_frame" ]}}, library):dropdown({
             name = "Select Config",
-            options = library:get_configs(),
-            default = library:get_configs()[1] or "None",
+            options = available_configs,
+            default = available_configs[1],
             flag = library:next_flag(),
             callback = function(selected)
-                cfg.selected_config = selected
-                name_textbox.set(selected)
+                if selected and selected ~= "No configs found" then
+                    cfg.selected_config = selected
+                    name_textbox.set(selected)
+                end
             end
         })
 
@@ -4537,7 +4544,9 @@ end
             local config_name = flags[name_textbox.flag]
             if config_name and config_name ~= "" then
                 if library:save_config(config_name) then
-                    config_dropdown.refresh_options(library:get_configs())
+                    local configs = library:get_configs()
+                    if #configs == 0 then configs = {"No configs found"} end
+                    config_dropdown.refresh_options(configs)
                     config_dropdown.set(config_name)
                 end
             end
@@ -4545,20 +4554,19 @@ end
 
         load_button.MouseButton1Click:Connect(function()
             local config_name = cfg.selected_config or flags[name_textbox.flag]
-            if config_name and config_name ~= "" then
+            if config_name and config_name ~= "" and config_name ~= "No configs found" then
                 library:load_config(config_name)
             end
         end)
 
         delete_button.MouseButton1Click:Connect(function()
             local config_name = cfg.selected_config or flags[name_textbox.flag]
-            if config_name and config_name ~= "" then
+            if config_name and config_name ~= "" and config_name ~= "No configs found" then
                 if library:delete_config(config_name) then
-                    config_dropdown.refresh_options(library:get_configs())
                     local configs = library:get_configs()
-                    if #configs > 0 then
-                        config_dropdown.set(configs[1])
-                    end
+                    if #configs == 0 then configs = {"No configs found"} end
+                    config_dropdown.refresh_options(configs)
+                    config_dropdown.set(configs[1])
                 end
             end
         end)
@@ -4566,9 +4574,11 @@ end
         duplicate_button.MouseButton1Click:Connect(function()
             local old_name = cfg.selected_config
             local new_name = flags[name_textbox.flag]
-            if old_name and old_name ~= "" and new_name and new_name ~= "" and old_name ~= new_name then
+            if old_name and old_name ~= "" and old_name ~= "No configs found" and new_name and new_name ~= "" and old_name ~= new_name then
                 if library:duplicate_config(old_name, new_name) then
-                    config_dropdown.refresh_options(library:get_configs())
+                    local configs = library:get_configs()
+                    if #configs == 0 then configs = {"No configs found"} end
+                    config_dropdown.refresh_options(configs)
                     config_dropdown.set(new_name)
                 end
             end
@@ -4577,16 +4587,20 @@ end
         rename_button.MouseButton1Click:Connect(function()
             local old_name = cfg.selected_config
             local new_name = flags[name_textbox.flag]
-            if old_name and old_name ~= "" and new_name and new_name ~= "" and old_name ~= new_name then
+            if old_name and old_name ~= "" and old_name ~= "No configs found" and new_name and new_name ~= "" and old_name ~= new_name then
                 if library:rename_config(old_name, new_name) then
-                    config_dropdown.refresh_options(library:get_configs())
+                    local configs = library:get_configs()
+                    if #configs == 0 then configs = {"No configs found"} end
+                    config_dropdown.refresh_options(configs)
                     config_dropdown.set(new_name)
                 end
             end
         end)
 
         refresh_button.MouseButton1Click:Connect(function()
-            config_dropdown.refresh_options(library:get_configs())
+            local configs = library:get_configs()
+            if #configs == 0 then configs = {"No configs found"} end
+            config_dropdown.refresh_options(configs)
             notifications:create_notification({
                 name = "Config List",
                 info = "Refreshed config list",
@@ -4596,7 +4610,7 @@ end
 
         export_button.MouseButton1Click:Connect(function()
             local config_name = cfg.selected_config or flags[name_textbox.flag]
-            if config_name and config_name ~= "" then
+            if config_name and config_name ~= "" and config_name ~= "No configs found" then
                 local exported = library:export_config(config_name)
                 if exported then
                     export_textbox.set(exported)
@@ -4623,7 +4637,9 @@ end
             local config_name = flags[name_textbox.flag]
             if import_data and import_data ~= "" and config_name and config_name ~= "" then
                 if library:import_config(import_data, config_name) then
-                    config_dropdown.refresh_options(library:get_configs())
+                    local configs = library:get_configs()
+                    if #configs == 0 then configs = {"No configs found"} end
+                    config_dropdown.refresh_options(configs)
                     config_dropdown.set(config_name)
                 end
             end
