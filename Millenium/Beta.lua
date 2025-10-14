@@ -322,11 +322,29 @@ local function translate(txt,tgt,src)
             local arr=jD((res.Body or ""):match("%[.-%]\n"))
             if not arr then return nil end
             local decoded = jD(arr[1][3])
-            if not decoded then return nil end
-            return decoded[2][1][1][6][1][1]
+            
+            if not decoded or not decoded[2] or not decoded[2][1] or not decoded[2][1][1] or not decoded[2][1][1][6] then
+                return nil
+            end
+
+            local lines_data = decoded[2][1][1][6]
+            local translated_lines = {}
+            
+            for _, line_group in ipairs(lines_data) do
+                local line_parts = {}
+                for _, part in ipairs(line_group) do
+                    if part[1] then
+                        table.insert(line_parts, part[1])
+                    end
+                end
+                table.insert(translated_lines, table.concat(line_parts))
+            end
+
+            return table.concat(translated_lines, "\n")
         end)
         
-        if not ok then 
+        if not ok then
+            warn("[Translator] Failed to parse response:", out)
             return nil 
         end
         return out
