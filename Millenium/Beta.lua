@@ -74,6 +74,7 @@ getgenv().    library = {
             "/configs",
         },
         flags = {},
+        flag_objects = {},
         connections = {},   
         notifications = {notifs = {}},
         current_open;
@@ -2350,6 +2351,8 @@ end
         end
 
         cfg.set(cfg.default)
+        
+        library.flag_objects[cfg.flag] = cfg
 
 
 
@@ -2579,6 +2582,8 @@ end
         end 
 
         cfg.set(cfg.default)
+        
+        library.flag_objects[cfg.flag] = cfg
 
 
         return setmetatable(cfg, library)
@@ -2936,6 +2941,8 @@ end
         
         cfg.refresh_options(cfg.options)
         cfg.set(cfg.default)
+        
+        library.flag_objects[cfg.flag] = cfg
             
         return setmetatable(cfg, library)
     end
@@ -3522,6 +3529,8 @@ end
         end)
         
         cfg.set(cfg.color, cfg.alpha)
+        
+        library.flag_objects[cfg.flag] = cfg
 
 
         return setmetatable(cfg, library)
@@ -3652,6 +3661,8 @@ end
         if cfg.default then 
             cfg.set(cfg.default) 
         end
+        
+        library.flag_objects[cfg.flag] = cfg
 
 
 
@@ -3989,7 +4000,9 @@ end
             end
         end)
         
-        cfg.set({mode = cfg.mode, active = cfg.active, key = cfg.key})           
+        cfg.set({mode = cfg.mode, active = cfg.active, key = cfg.key})
+        
+        library.flag_objects[cfg.flag] = cfg
 
 
         return setmetatable(cfg, library)
@@ -4759,23 +4772,14 @@ end
             local decoded = http_service:JSONDecode(data)
             
             for flag, value in pairs(decoded) do
-                if library.flags[flag] ~= nil then
-                    local flag_obj = nil
-                    
-                    for _, section in pairs(getgenv()) do
-                        if type(section) == "table" and section.flag == flag and section.set then
-                            flag_obj = section
-                            break
-                        end
-                    end
-                    
-                    if flag_obj and flag_obj.set then
-                        pcall(function()
-                            flag_obj.set(value)
-                        end)
-                    else
-                        library.flags[flag] = value
-                    end
+                local flag_obj = library.flag_objects[flag]
+                
+                if flag_obj and flag_obj.set then
+                    pcall(function()
+                        flag_obj.set(value)
+                    end)
+                else
+                    library.flags[flag] = value
                 end
             end
             
