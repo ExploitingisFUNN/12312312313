@@ -71,11 +71,18 @@ getgenv().    library = {
         directory = "milenium",
         folders = {
             "/fonts",
+            "/configs",
         },
         flags = {},
+        flag_objects = {},
         connections = {},   
         notifications = {notifs = {}},
-        current_open; 
+        current_open;
+        config = {
+            folder = "milenium/configs",
+            current = nil,
+            autoload_file = "milenium/autoload.txt"
+        }
     }
 
 local themes = {
@@ -88,7 +95,8 @@ local themes = {
             BackgroundColor3 = {}, 	
             TextColor3 = {}, 
             ImageColor3 = {}, 
-            ScrollBarImageColor3 = {} 
+            ScrollBarImageColor3 = {},
+            Color = {}
         },
     }
 }
@@ -212,6 +220,305 @@ local fonts = {}; do
         small = Font.new(Medium, Enum.FontWeight.Regular, Enum.FontStyle.Normal);
         font = Font.new(SemiBold, Enum.FontWeight.Regular, Enum.FontStyle.Normal);
     }
+end
+--
+
+-- Google Translate Integration
+local function req(opt)
+    local fn=(syn and syn.request) or (http and http.request) or http_request or request
+    if fn then return fn(opt) end
+    return http_service:RequestAsync(opt)
+end
+
+local gv=isfile and isfile("googlev.txt") and readfile("googlev.txt") or ""
+
+local function consent(body)
+    local t={}
+    for tag in body:gmatch('<input type="hidden" name=".-" value=".-">') do
+        local k,v=tag:match('<input type="hidden" name="(.-)" value="(.-)">'); t[k]=v
+    end
+    gv=t.v or ""; if writefile then writefile("googlev.txt",gv) end
+end
+
+local function got(url,method,body)
+    method=method or "GET"
+    local res=req({Url=url,Method=method,Headers={cookie="CONSENT=YES+"..(gv or "")},Body=body})
+    local b=res.Body or res.body or ""; if type(b)~="string" then b=tostring(b) end
+    if b:match("https://consent.google.com/s") then
+        consent(b)
+        res=req({Url=url,Method="GET",Headers={cookie="CONSENT=YES+"..(gv or "")}})
+    end
+    return res
+end
+
+local langs={
+    auto="Automatic",af="Afrikaans",sq="Albanian",am="Amharic",ar="Arabic",hy="Armenian",az="Azerbaijani",eu="Basque",be="Belarusian",bn="Bengali",bs="Bosnian",bg="Bulgarian",ca="Catalan",ceb="Cebuano",ny="Chichewa",
+    ["zh-cn"]="Chinese Simplified",["zh-tw"]="Chinese Traditional",co="Corsican",hr="Croatian",cs="Czech",da="Danish",nl="Dutch",en="English",eo="Esperanto",et="Estonian",tl="Filipino",fi="Finnish",fr="French",fy="Frisian",
+    gl="Galician",ka="Georgian",de="German",el="Greek",gu="Gujarati",ht="Haitian Creole",ha="Hausa",haw="Hawaiian",iw="Hebrew",hi="Hindi",hmn="Hmong",hu="Hungarian",is="Icelandic",ig="Igbo",id="Indonesian",ga="Irish",it="Italian",
+    ja="Japanese",jw="Javanese",kn="Kannada",kk="Kazakh",km="Khmer",ko="Korean",ku="Kurdish (Kurmanji)",ky="Kyrgyz",lo="Lao",la="Latin",lv="Latvian",lt="Lithuanian",lb="Luxembourgish",mk="Macedonian",mg="Malagasy",ms="Malay",
+    ml="Malayalam",mt="Maltese",mi="Maori",mr="Marathi",mn="Mongolian",my="Myanmar (Burmese)",ne="Nepali",no="Norwegian",ps="Pashto",fa="Persian",pl="Polish",pt="Portuguese",pa="Punjabi",ro="Romanian",ru="Russian",sm="Samoan",
+    gd="Scots Gaelic",sr="Serbian",st="Sesotho",sn="Shona",sd="Sindhi",si="Sinhala",sk="Slovak",sl="Slovenian",so="Somali",es="Spanish",su="Sundanese",sw="Swahili",sv="Swedish",tg="Tajik",ta="Tamil",te="Telugu",th="Thai",tr="Turkish",
+    uk="Ukrainian",ur="Urdu",uz="Uzbek",vi="Vietnamese",cy="Welsh",xh="Xhosa",yi="Yiddish",yo="Yoruba",zu="Zulu"
+}
+
+local function iso(s)
+    if not s then return end
+    for k,v in pairs(langs) do if k==s or v==s then return k end end
+end
+
+local function q(data)
+    local s=""
+    for k,v in pairs(data) do
+        if type(v)=="table" then for _,vv in pairs(v) do s..="&"..http_service:UrlEncode(k).."="..http_service:UrlEncode(vv) end
+        else s..="&"..http_service:UrlEncode(k).."="..http_service:UrlEncode(v) end
+    end
+    return s:sub(2)
+end
+
+local jE=function(x) return http_service:JSONEncode(x) end
+local jD=function(x) return http_service:JSONDecode(x) end
+
+local rpc="MkEWBc"
+local root="https://translate.google.com/"
+local exec="https://translate.google.com/_/TranslateWebserverUi/data/batchexecute"
+local fsid,bl,rid=nil,nil,math.random(1000,9999)
+
+task.spawn(function()
+    pcall(function()
+        local b=(got(root).Body or "")
+        fsid=b:match('"FdrFJe":"(.-)"'); bl=b:match('"cfb2h":"(.-)"')
+        if fsid and bl then
+            print("[Translator] Google API initialized successfully")
+        else
+            warn("[Translator] Failed to initialize Google API")
+        end
+    end)
+end)
+
+local function translate(txt,tgt,src)
+    if not txt or txt == "" then return txt end
+    if not fsid or not bl then 
+        warn("[Translator] Google API not initialized")
+        return txt 
+    end
+    
+    local success, result = pcall(function()
+        rid+=10000
+        tgt=iso(tgt) or "en"; src=iso(src) or "auto"
+        local data={{txt,src,tgt,true},{nil}}
+        local freq={{{rpc,jE(data),nil,"generic"}}}
+        local url=exec.."?"..q{rpcids=rpc,["f.sid"]=fsid,bl=bl,hl="en",_reqid=rid-10000,rt="c"}
+        local body=q{["f.req"]=jE(freq)}
+        local res=got(url,"POST",body)
+        
+        if not res or not res.Body then
+            warn("[Translator] No response from Google")
+            return nil
+        end
+        
+        local ok,out=pcall(function() 
+            local arr=jD((res.Body or ""):match("%[.-%]\n"))
+            if not arr then return nil end
+            local decoded = jD(arr[1][3])
+            if not decoded then return nil end
+            return decoded[2][1][1][6][1][1]
+        end)
+        
+        if not ok then 
+            return nil 
+        end
+        return out
+    end)
+    
+    if not success then
+        warn("[Translator] Error translating:", txt, result)
+        return txt
+    end
+    
+    return result or txt
+end
+
+local translator = {
+    enabled = false,
+    current_lang = "en",
+    text_elements = {},
+    original_texts = {},
+    rich_text_patterns = {},
+    registered_count = 0
+}
+
+function translator:add_element(element, property, rich_text_format)
+    if not element or not property then return end
+    local id = tostring(element)
+    local ok, debug_id = pcall(function()
+        return element:GetDebugId()
+    end)
+    if ok and debug_id then
+        id = tostring(debug_id)
+    end
+    if not self.original_texts[id] then
+        self.original_texts[id] = element[property]
+    end
+    self.text_elements[id] = {elem = element, prop = property}
+    if rich_text_format then
+        self.rich_text_patterns[id] = rich_text_format
+    end
+    self.registered_count += 1
+end
+
+function translator:strip_rich_text(text)
+    if not text then return "" end
+    local plain = text:gsub("<[^>]+>", "")
+    return plain
+end
+
+function translator:apply_rich_text(text, pattern)
+    if not pattern then return text end
+    return string.format(pattern, text)
+end
+
+function translator:translate_all()
+    if not self.enabled or self.current_lang == "en" then
+        for id, data in pairs(self.text_elements) do
+            if data.elem and self.original_texts[id] then
+                pcall(function()
+                    data.elem[data.prop] = self.original_texts[id]
+                end)
+            end
+        end
+        return
+    end
+    
+    task.spawn(function()
+        local texts_to_translate = {}
+        local element_map = {}
+        
+        for id, data in pairs(self.text_elements) do
+            if data.elem and self.original_texts[id] and data.elem.Parent then
+                local original = self.original_texts[id]
+                local plain_text = self:strip_rich_text(original)
+                
+                if plain_text ~= "" and plain_text ~= " " and #plain_text > 0 then
+                    table.insert(texts_to_translate, plain_text)
+                    table.insert(element_map, {
+                        id = id,
+                        data = data,
+                        original = original
+                    })
+                end
+            end
+        end
+        
+        if #texts_to_translate == 0 then return end
+        
+        local translated_count = 0
+        local batch_size = 10
+        
+        for batch_start = 1, #texts_to_translate, batch_size do
+            local batch_end = math.min(batch_start + batch_size - 1, #texts_to_translate)
+            local batch_texts = {}
+            
+            for i = batch_start, batch_end do
+                table.insert(batch_texts, texts_to_translate[i])
+            end
+            
+            local separator = " §§§ "
+            local combined = table.concat(batch_texts, separator)
+            local translated_combined = translate(combined, self.current_lang, "auto")
+            
+            if translated_combined and translated_combined ~= "" then
+                local translated_parts = {}
+                for part in translated_combined:gmatch("([^§]+)") do
+                    local trimmed = part:gsub("^%s*", ""):gsub("%s*$", "")
+                    if trimmed ~= "" then
+                        table.insert(translated_parts, trimmed)
+                    end
+                end
+                
+                for i = 1, math.min(#translated_parts, #batch_texts) do
+                    local map_index = batch_start + i - 1
+                    local map = element_map[map_index]
+                    local translated_text = translated_parts[i]
+                    
+                    if map and translated_text then
+                        local final_text = translated_text
+                        
+                        if self.rich_text_patterns[map.id] then
+                            final_text = self:apply_rich_text(final_text, self.rich_text_patterns[map.id])
+                        elseif map.original:match("<.->") then
+                            local prefix = map.original:match("^(<.->)")
+                            local suffix = map.original:match("(<.->)$")
+                            if prefix and suffix then
+                                final_text = prefix .. final_text .. suffix
+                            end
+                        end
+                        
+                        local success = pcall(function()
+                            map.data.elem[map.data.prop] = final_text
+                        end)
+                        
+                        if success then
+                            translated_count = translated_count + 1
+                        end
+                    end
+                end
+            end
+            
+            if batch_end < #texts_to_translate then
+                task.wait(0.15)
+            end
+        end
+        
+        print(string.format("[Translator] Translated %d/%d elements in %d batches", translated_count, #element_map, math.ceil(#element_map / batch_size)))
+    end)
+end
+
+getgenv().translator = translator
+
+function translator:create_language_dropdown(parent_section)
+    if not parent_section then 
+        warn("[Translator] No parent section provided for language dropdown")
+        return 
+    end
+    
+    parent_section:dropdown({
+        name = "Language",
+        options = {
+            "English", "Spanish", "French", "German", "Japanese", "Korean", 
+            "Chinese Simplified", "Russian", "Portuguese", "Italian", "Arabic", 
+            "Hindi", "Thai", "Vietnamese", "Turkish", "Dutch", "Polish", 
+            "Swedish", "Finnish", "Norwegian"
+        },
+        default = "English",
+        seperator = false,
+        callback = function(selected)
+            local lang_map = {
+                ["English"] = "en", ["Spanish"] = "es", ["French"] = "fr",
+                ["German"] = "de", ["Japanese"] = "ja", ["Korean"] = "ko",
+                ["Chinese Simplified"] = "zh-cn", ["Russian"] = "ru",
+                ["Portuguese"] = "pt", ["Italian"] = "it", ["Arabic"] = "ar",
+                ["Hindi"] = "hi", ["Thai"] = "th", ["Vietnamese"] = "vi",
+                ["Turkish"] = "tr", ["Dutch"] = "nl", ["Polish"] = "pl",
+                ["Swedish"] = "sv", ["Finnish"] = "fi", ["Norwegian"] = "no"
+            }
+            
+            self.current_lang = lang_map[selected] or "en"
+            self.enabled = (self.current_lang ~= "en")
+            
+            local element_count = 0
+            for _ in pairs(self.text_elements) do
+                element_count = element_count + 1
+            end
+            print(string.format("[Translator] Found %d registered elements", element_count))
+            
+            if not fsid or not bl then
+                warn("[Translator] Google API not initialized! Waiting...")
+                task.wait(2)
+            end
+            
+            self:translate_all()
+        end
+    })
 end
 --
 
@@ -392,7 +699,12 @@ end
         return floor(number * multiplier + 0.5) / multiplier
     end 
 
-    function library:apply_theme(instance, theme, property) 
+    function library:apply_theme(instance, theme, property)
+        if not instance then return end
+        if not themes.utility[theme] then return end
+        if not themes.utility[theme][property] then 
+            themes.utility[theme][property] = {}
+        end
         insert(themes.utility[theme][property], instance)
     end
 
@@ -595,6 +907,7 @@ end
                 TextSize = 30;
                 BackgroundColor3 = rgb(255, 255, 255)
             }); library:apply_theme(items[ "title" ], "accent", "TextColor3");
+            if getgenv().translator then getgenv().translator:add_element(items[ "title" ], "Text", "<u>%s</u>") end
             
             items[ "multi_holder" ] = library:create( "Frame" , {
                 Parent = items[ "main" ];
@@ -606,6 +919,72 @@ end
                 BorderSizePixel = 0;
                 BackgroundColor3 = rgb(255, 255, 255)
             }); cfg.multi_holder = items[ "multi_holder" ];
+            
+            items[ "burger_holder" ] = library:create( "Frame" , {
+                Parent = items[ "multi_holder" ];
+                Name = "\0";
+                Position = dim2(0, 10, 0, 10);
+                Size = dim2(0, 30, 0, 30);
+                BackgroundTransparency = 1;
+                BorderSizePixel = 0;
+                ZIndex = 10
+            });
+            
+            items[ "burger_button" ] = library:create( "TextButton" , {
+                Parent = items[ "burger_holder" ];
+                Name = "\0";
+                Text = "";
+                AutoButtonColor = false;
+                Size = dim2(1, 0, 1, 0);
+                BackgroundTransparency = 1;
+                BorderSizePixel = 0;
+                ZIndex = 11
+            });
+            
+            items[ "burger_line1" ] = library:create( "Frame" , {
+                Parent = items[ "burger_holder" ];
+                Name = "\0";
+                Position = dim2(0, 5, 0, 7);
+                Size = dim2(0, 20, 0, 3);
+                BackgroundColor3 = rgb(255, 255, 255);
+                BorderSizePixel = 0;
+                ZIndex = 11
+            });
+            
+            library:create( "UICorner" , {
+                Parent = items[ "burger_line1" ];
+                CornerRadius = dim(0, 2)
+            });
+            
+            items[ "burger_line2" ] = library:create( "Frame" , {
+                Parent = items[ "burger_holder" ];
+                Name = "\0";
+                Position = dim2(0, 5, 0, 13);
+                Size = dim2(0, 20, 0, 3);
+                BackgroundColor3 = rgb(255, 255, 255);
+                BorderSizePixel = 0;
+                ZIndex = 11
+            });
+            
+            library:create( "UICorner" , {
+                Parent = items[ "burger_line2" ];
+                CornerRadius = dim(0, 2)
+            });
+            
+            items[ "burger_line3" ] = library:create( "Frame" , {
+                Parent = items[ "burger_holder" ];
+                Name = "\0";
+                Position = dim2(0, 5, 0, 19);
+                Size = dim2(0, 20, 0, 3);
+                BackgroundColor3 = rgb(255, 255, 255);
+                BorderSizePixel = 0;
+                ZIndex = 11
+            });
+            
+            library:create( "UICorner" , {
+                Parent = items[ "burger_line3" ];
+                CornerRadius = dim(0, 2)
+            });
             
             library:create( "Frame" , {
                 AnchorPoint = vec2(0, 1);
@@ -750,6 +1129,34 @@ end
                 items[ "main" ].Active = true
                 items[ "main" ].Selectable = true
             end
+            
+            cfg.SidebarVisible = true
+            
+            function cfg.ToggleSidebar()
+                cfg.SidebarVisible = not cfg.SidebarVisible
+                
+                if cfg.SidebarVisible then
+                    library:tween(items[ "side_frame" ], {Position = dim2(0, 0, 0, 0)}, Enum.EasingStyle.Quad, 0.3)
+                    library:tween(items[ "multi_holder" ], {Position = dim2(0, 196, 0, 0), Size = dim2(1, -196, 0, 56)}, Enum.EasingStyle.Quad, 0.3)
+                    library:tween(items[ "global_fade" ], {Position = dim2(0, 196, 0, 56), Size = dim2(1, -196, 1, -81)}, Enum.EasingStyle.Quad, 0.3)
+                else
+                    library:tween(items[ "side_frame" ], {Position = dim2(0, -196, 0, 0)}, Enum.EasingStyle.Quad, 0.3)
+                    library:tween(items[ "multi_holder" ], {Position = dim2(0, 0, 0, 0), Size = dim2(1, 0, 0, 56)}, Enum.EasingStyle.Quad, 0.3)
+                    library:tween(items[ "global_fade" ], {Position = dim2(0, 0, 0, 56), Size = dim2(1, 0, 1, -81)}, Enum.EasingStyle.Quad, 0.3)
+                end
+                
+                if cfg.selected_tab and cfg.selected_tab[4] then
+                    local TabHolder = cfg.selected_tab[4]
+                    local TabHolderPosX = cfg.SidebarVisible and 196 or 0
+                    local SidebarOffset = cfg.SidebarVisible and -196 or 0
+                    
+                    library:tween(TabHolder, {Position = dim2(0, TabHolderPosX, 0, 56), Size = dim2(1, SidebarOffset, 1, -81)}, Enum.EasingStyle.Quad, 0.3)
+                end
+            end
+            
+            items[ "burger_button" ].MouseButton1Click:Connect(function()
+                cfg.ToggleSidebar()
+            end)
         end 
 
         if library.is_mobile then
@@ -880,6 +1287,8 @@ end
             library[ "items" ].Enabled = bool
             if library[ "other" ] then library[ "other" ].Enabled = bool end
         end 
+        
+        library:load_autoload()
             
         return setmetatable(cfg, library)
     end 
@@ -919,6 +1328,7 @@ end
                 ScrollBarImageColor3 = themes.preset.accent;
                 VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
             }); library:apply_theme(items[ "tab_holder" ], "accent", "ScrollBarImageColor3");
+            cfg.tab_holder = items[ "tab_holder" ];
 
             library:create( "UIListLayout" , {
                 Parent = items[ "tab_holder" ];
@@ -973,6 +1383,7 @@ end
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
+                if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
                 
                 library:create( "UIPadding" , {
                     Parent = items[ "name" ];
@@ -1007,7 +1418,7 @@ end
                 
                 library:create( "UIListLayout" , {
                     Parent = items[ "multi_section_button_holder" ];
-                    Padding = dim(0, 7);
+                    Padding = dim(0, 10);
                     SortOrder = Enum.SortOrder.LayoutOrder;
                     FillDirection = Enum.FillDirection.Horizontal
                 });
@@ -1016,8 +1427,8 @@ end
                     PaddingTop = dim(0, 8);
                     PaddingBottom = dim(0, 7);
                     Parent = items[ "multi_section_button_holder" ];
-                    PaddingRight = dim(0, 7);
-                    PaddingLeft = dim(0, 7)
+                    PaddingRight = dim(0, 10);
+                    PaddingLeft = dim(0, 50)
                 });                        
 
                 for _, section in cfg.tabs do
@@ -1057,6 +1468,7 @@ end
                                 TextSize = 16;
                                 BackgroundColor3 = rgb(255, 255, 255)
                             });
+                            if getgenv().translator then getgenv().translator:add_element(multi_items[ "name" ], "Text") end
                             
                             library:create( "UIPadding" , {
                                 Parent = multi_items[ "name" ];
@@ -1211,10 +1623,16 @@ end
             library:tween(items[ "button" ], {BackgroundTransparency = 0})
             library:tween(items[ "icon" ], {ImageColor3 = themes.preset.accent})
             library:tween(items[ "name" ], {TextColor3 = rgb(255, 255, 255)})
-            library:tween(items[ "tab_holder" ], {Size = dim2(1, -196, 1, -81)}, Enum.EasingStyle.Quad, 0.4)
+            
+            local SidebarOffset = self.SidebarVisible and -196 or 0
+            library:tween(items[ "tab_holder" ], {Size = dim2(1, SidebarOffset, 1, -81)}, Enum.EasingStyle.Quad, 0.4)
             
             items[ "tab_holder" ].Visible = true 
             items[ "tab_holder" ].Parent = self.items[ "main" ]
+            
+            local TabHolderPosX = self.SidebarVisible and 196 or 0
+            items[ "tab_holder" ].Position = dim2(0, TabHolderPosX, 0, 56)
+            
             items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.None
             items[ "tab_holder" ].CanvasSize = dim2(0,0,0,5000)
             items[ "tab_holder" ].ScrollBarThickness = library.is_mobile and 6 or 3
@@ -1503,6 +1921,7 @@ end
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
+            if getgenv().translator then getgenv().translator:add_element(items[ "section_title" ], "Text") end
             
             library:create( "Frame" , {
                 AnchorPoint = vec2(0, 1);
@@ -1674,24 +2093,28 @@ end
     end  
 
     function library:toggle(options) 
-        local rand = math.random(1, 2) 
         local cfg = {
             enabled = options.enabled or nil,
             name = options.name or "Toggle",
             info = options.info or nil,
             flag = options.flag or library:next_flag(),
             
-            type = options.type and string.lower(options.type) or rand == 1 and "toggle" or "checkbox"; -- "toggle", "checkbox"
+            type = options.type and string.lower(options.type) or "toggle";
 
             default = options.default or false,
             folding = options.folding or false, 
             callback = options.callback or function() end,
+            
+            keybind = options.keybind ~= false,
+            keybind_flag = options.flag and (options.flag .. "_keybind") or library:next_flag(),
+            keybind_default = options.keybind_default or nil,
 
             items = {};
             seperator = options.seperator or options.Seperator or false;
         }
 
         flags[cfg.flag] = cfg.default
+        flags[cfg.keybind_flag] = {key = cfg.keybind_default, active = false, mode = "Toggle"}
 
         local items = cfg.items; do
             items[ "toggle" ] = library:create( "TextButton" , {
@@ -1724,6 +2147,7 @@ end
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
+            if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
 
             if cfg.info then 
                 items[ "info" ] = library:create( "TextLabel" , {
@@ -1743,6 +2167,7 @@ end
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
+                if getgenv().translator then getgenv().translator:add_element(items[ "info" ], "Text") end
             end 
             
             library:create( "UIPadding" , {
@@ -1885,10 +2310,46 @@ end
                         CornerRadius = dim(0, 999)
                     });                        
                 end 
-            --                
+            --
+            
+            if cfg.keybind then
+                items[ "keybind_holder" ] = library:create( "TextButton" , {
+                    FontFace = fonts.small;
+                    TextColor3 = rgb(86, 86, 87);
+                    BorderColor3 = rgb(0, 0, 0);
+                    Text = "[NONE]";
+                    AutoButtonColor = false;
+                    LayoutOrder = 1;
+                    AnchorPoint = vec2(1, 0);
+                    Parent = items[ "right_components" ];
+                    Name = "\0";
+                    Size = dim2(0, 0, 0, 16);
+                    BorderSizePixel = 0;
+                    AutomaticSize = Enum.AutomaticSize.X;
+                    TextSize = 12;
+                    BackgroundColor3 = rgb(33, 33, 35)
+                });
+                
+                library:create( "UICorner" , {
+                    Parent = items[ "keybind_holder" ];
+                    CornerRadius = dim(0, 4)
+                });
+                
+                library:create( "UIPadding" , {
+                    Parent = items[ "keybind_holder" ];
+                    PaddingTop = dim(0, 1);
+                    PaddingRight = dim(0, 5);
+                    PaddingLeft = dim(0, 5)
+                });
+                
+                cfg.binding = nil
+                cfg.keybind_key = cfg.keybind_default
+            end                
         end;
         
         function cfg.set(bool)
+            cfg.enabled = bool
+            
             if cfg.type == "checkbox" then 
                 library:tween(items[ "tick" ], {Rotation = bool and 0 or 45, ImageTransparency = bool and 0 or 1})
                 library:tween(items[ "toggle_button" ], {BackgroundColor3 = bool and themes.preset.accent or rgb(67, 67, 68)})
@@ -1918,6 +2379,57 @@ end
             cfg.set(cfg.enabled)
         end)
         
+        if cfg.keybind then
+            function cfg.set_keybind(key)
+                cfg.keybind_key = key
+                local text = "NONE"
+                
+                if key and tostring(key) ~= "Enums" then
+                    text = keys[key] or tostring(key):gsub("Enum.KeyCode.", ""):gsub("Enum.UserInputType.", "")
+                end
+                
+                items[ "keybind_holder" ].Text = "[" .. text .. "]"
+                flags[cfg.keybind_flag] = {key = key, active = false, mode = "Toggle"}
+                library.flag_objects[cfg.keybind_flag] = {
+                    set = function(value)
+                        if type(value) == "table" and value.key then
+                            cfg.set_keybind(value.key)
+                        end
+                    end
+                }
+            end
+            
+            items[ "keybind_holder" ].MouseButton1Click:Connect(function()
+                items[ "keybind_holder" ].Text = "[...]"
+                
+                cfg.binding = library:connection(uis.InputBegan, function(input, gpe)
+                    local key = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
+                    
+                    if key == Enum.KeyCode.Escape then
+                        cfg.set_keybind(nil)
+                    else
+                        cfg.set_keybind(key)
+                    end
+                    
+                    cfg.binding:Disconnect()
+                    cfg.binding = nil
+                end)
+            end)
+            
+            library:connection(uis.InputBegan, function(input, gpe)
+                if gpe or cfg.binding then return end
+                
+                local key = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
+                
+                if key == cfg.keybind_key and cfg.keybind_key then
+                    cfg.enabled = not cfg.enabled
+                    cfg.set(cfg.enabled)
+                end
+            end)
+            
+            cfg.set_keybind(cfg.keybind_key)
+        end
+        
         if cfg.seperator then -- ok bro my lua either sucks or this was a pain in the ass to make (simple if statement aswell 💔)
             library:create( "Frame" , {
                 AnchorPoint = vec2(0, 1);
@@ -1931,6 +2443,8 @@ end
         end
 
         cfg.set(cfg.default)
+        
+        library.flag_objects[cfg.flag] = cfg
 
 
 
@@ -1990,6 +2504,7 @@ end
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
+            if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
             
             if cfg.info then 
                 items[ "info" ] = library:create( "TextLabel" , {
@@ -2009,6 +2524,7 @@ end
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
+                if getgenv().translator then getgenv().translator:add_element(items[ "info" ], "Text") end
             end 
 
             library:create( "UIPadding" , {
@@ -2158,6 +2674,8 @@ end
         end 
 
         cfg.set(cfg.default)
+        
+        library.flag_objects[cfg.flag] = cfg
 
 
         return setmetatable(cfg, library)
@@ -2219,6 +2737,7 @@ end
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
+                if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
                 
                 if cfg.info then 
                     items[ "info" ] = library:create( "TextLabel" , {
@@ -2238,6 +2757,7 @@ end
                         TextSize = 16;
                         BackgroundColor3 = rgb(255, 255, 255)
                     });
+                    if getgenv().translator then getgenv().translator:add_element(items[ "info" ], "Text") end
                 end 
 
                 library:create( "UIPadding" , {
@@ -2390,11 +2910,10 @@ end
                 Text = tostring(text);
                 Parent = items[ "list_scroller" ];
                 Name = "\0";
-                Size = dim2(1, -12, 0, 0);
+                Size = dim2(1, -12, 0, 20);
                 BackgroundTransparency = 0;
                 TextXAlignment = Enum.TextXAlignment.Left;
                 BorderSizePixel = 0;
-                AutomaticSize = Enum.AutomaticSize.Y;
                 TextSize = 14;
                 BackgroundColor3 = rgb(33, 33, 35);
                 ZIndex = 10;
@@ -2404,9 +2923,10 @@ end
             
             library:create( "UIPadding" , {
                 Parent = button;
-                PaddingTop = dim(0, 1);
+                PaddingTop = dim(0, 2);
                 PaddingRight = dim(0, 5);
-                PaddingLeft = dim(0, 5)
+                PaddingLeft = dim(0, 5);
+                PaddingBottom = dim(0, 2)
             });
             
             return button
@@ -2414,14 +2934,15 @@ end
         
         function cfg.set_visible(bool)
             local maxVisible = 5
-            local rowHeight = 21
-            local visibleHeight = math.min(maxVisible, #cfg.option_instances) * rowHeight + 12
-            local fullHeight = cfg.y_size
+            local rowHeight = 25
+            local itemCount = math.max(1, #cfg.option_instances)
+            local visibleHeight = math.min(maxVisible, itemCount) * rowHeight + 9
+            local fullHeight = math.max(25, cfg.y_size)
 
-            local targetHeight = bool and math.min(fullHeight, visibleHeight) or 0
+            local targetHeight = bool and math.max(25, math.min(fullHeight, visibleHeight)) or 0
             library:tween(items[ "dropdown_holder" ], {Size = dim_offset(items[ "dropdown" ].AbsoluteSize.X, targetHeight)})
 
-            items[ "dropdown_holder" ].Position = dim2(0, items[ "dropdown" ].AbsolutePosition.X, 0, items[ "dropdown" ].AbsolutePosition.Y + 80)
+            items[ "dropdown_holder" ].Position = dim2(0, items[ "dropdown" ].AbsolutePosition.X, 0, items[ "dropdown" ].AbsolutePosition.Y + 20)
 
             if items[ "list_scroller" ] then
                 items[ "list_scroller" ].CanvasSize = dim2(0, 0, 0, math.max(0, fullHeight - visibleHeight))
@@ -2466,7 +2987,7 @@ end
 
             for _, option in list do 
                 local button = cfg.render_option(option)
-                cfg.y_size += button.AbsoluteSize.Y + 6
+                cfg.y_size += 25
                 insert(cfg.option_instances, button)
                 
                 button.MouseButton1Down:Connect(function()
@@ -2513,6 +3034,8 @@ end
         
         cfg.refresh_options(cfg.options)
         cfg.set(cfg.default)
+        
+        library.flag_objects[cfg.flag] = cfg
             
         return setmetatable(cfg, library)
     end
@@ -2560,6 +3083,7 @@ end
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
+            if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
 
             if cfg.info then 
                 items[ "info" ] = library:create( "TextLabel" , {
@@ -2579,6 +3103,7 @@ end
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
+                if getgenv().translator then getgenv().translator:add_element(items[ "info" ], "Text") end
             end 
             
             library:create( "UIPadding" , {
@@ -3097,6 +3622,8 @@ end
         end)
         
         cfg.set(cfg.color, cfg.alpha)
+        
+        library.flag_objects[cfg.flag] = cfg
 
 
         return setmetatable(cfg, library)
@@ -3147,6 +3674,7 @@ end
                 TextSize = 16;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
+            if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
             
             library:create( "UIPadding" , {
                 Parent = items[ "name" ];
@@ -3226,6 +3754,8 @@ end
         if cfg.default then 
             cfg.set(cfg.default) 
         end
+        
+        library.flag_objects[cfg.flag] = cfg
 
 
 
@@ -3288,6 +3818,7 @@ end
                     TextSize = 16;
                     BackgroundColor3 = rgb(255, 255, 255)
                 });
+                if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end
                 
                 library:create( "UIPadding" , {
                     Parent = items[ "name" ];
@@ -3562,7 +4093,9 @@ end
             end
         end)
         
-        cfg.set({mode = cfg.mode, active = cfg.active, key = cfg.key})           
+        cfg.set({mode = cfg.mode, active = cfg.active, key = cfg.key})
+        
+        library.flag_objects[cfg.flag] = cfg
 
 
         return setmetatable(cfg, library)
@@ -3622,7 +4155,8 @@ end
                 AutomaticSize = Enum.AutomaticSize.XY;
                 TextSize = 14;
                 BackgroundColor3 = rgb(255, 255, 255)
-            }); library:apply_theme(items[ "name" ], "accent", "BackgroundColor3");                            
+            }); library:apply_theme(items[ "name" ], "accent", "BackgroundColor3");
+            if getgenv().translator then getgenv().translator:add_element(items[ "name" ], "Text") end                            
         end 
 
         items[ "button" ].MouseButton1Click:Connect(function()
@@ -3733,7 +4267,9 @@ end
             cfg.set_visible(cfg.open)
         end)
 
-        return setmetatable(cfg, library)
+        cfg = setmetatable(cfg, library)
+        
+        return cfg
     end 
 
     function library:list(properties) 
@@ -3851,6 +4387,210 @@ end
         return setmetatable(cfg, library)
     end 
 
+    function library:config_manager(properties)
+        local cfg = {
+            items = {};
+            selected_config = nil;
+            autoload_enabled = false;
+        }
+
+        local items = cfg.items; do
+            items[ "config_frame" ] = library:create( "Frame" , {
+                Parent = self.items[ "elements" ];
+                BackgroundTransparency = 1;
+                Name = "\0";
+                Size = dim2(1, 0, 0, 0);
+                BorderColor3 = rgb(0, 0, 0);
+                BorderSizePixel = 0;
+                AutomaticSize = Enum.AutomaticSize.Y;
+                BackgroundColor3 = rgb(255, 255, 255)
+            });
+            
+            library:create( "UIListLayout" , {
+                Parent = items[ "config_frame" ];
+                Padding = dim(0, 10);
+                SortOrder = Enum.SortOrder.LayoutOrder
+            });
+        end
+
+        local name_textbox = setmetatable({items = {elements = items[ "config_frame" ]}}, library):textbox({
+            name = "Config Name",
+            placeholder = "Enter config name...",
+            default = "",
+            flag = library:next_flag()
+        })
+
+        local available_configs = library:get_configs()
+        if #available_configs == 0 then
+            available_configs = {"No configs found"}
+        end
+
+        local config_dropdown = setmetatable({items = {elements = items[ "config_frame" ]}}, library):dropdown({
+            name = "Select Config",
+            options = available_configs,
+            default = available_configs[1],
+            flag = library:next_flag(),
+            callback = function(selected)
+                if selected and selected ~= "No configs found" then
+                    cfg.selected_config = selected
+                    name_textbox.set(selected)
+                end
+            end
+        })
+
+        local save_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Save Config",
+            callback = function()
+                local config_name = flags[name_textbox.flag]
+                if config_name and config_name ~= "" then
+                    if library:save_config(config_name) then
+                        local configs = library:get_configs()
+                        if #configs == 0 then configs = {"No configs found"} end
+                        config_dropdown.refresh_options(configs)
+                        config_dropdown.set(config_name)
+                    end
+                end
+            end
+        })
+
+        local load_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Load Config",
+            callback = function()
+                local config_name = cfg.selected_config or flags[name_textbox.flag]
+                if config_name and config_name ~= "" and config_name ~= "No configs found" then
+                    library:load_config(config_name)
+                end
+            end
+        })
+
+        local delete_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Delete Config",
+            callback = function()
+                local config_name = cfg.selected_config or flags[name_textbox.flag]
+                if config_name and config_name ~= "" and config_name ~= "No configs found" then
+                    if library:delete_config(config_name) then
+                        local configs = library:get_configs()
+                        if #configs == 0 then configs = {"No configs found"} end
+                        config_dropdown.refresh_options(configs)
+                        config_dropdown.set(configs[1])
+                    end
+                end
+            end
+        })
+
+        local duplicate_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Duplicate Config",
+            callback = function()
+                local old_name = cfg.selected_config
+                local new_name = flags[name_textbox.flag]
+                if old_name and old_name ~= "" and old_name ~= "No configs found" and new_name and new_name ~= "" and old_name ~= new_name then
+                    if library:duplicate_config(old_name, new_name) then
+                        local configs = library:get_configs()
+                        if #configs == 0 then configs = {"No configs found"} end
+                        config_dropdown.refresh_options(configs)
+                        config_dropdown.set(new_name)
+                    end
+                end
+            end
+        })
+
+        local rename_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Rename Config",
+            callback = function()
+                local old_name = cfg.selected_config
+                local new_name = flags[name_textbox.flag]
+                if old_name and old_name ~= "" and old_name ~= "No configs found" and new_name and new_name ~= "" and old_name ~= new_name then
+                    if library:rename_config(old_name, new_name) then
+                        local configs = library:get_configs()
+                        if #configs == 0 then configs = {"No configs found"} end
+                        config_dropdown.refresh_options(configs)
+                        config_dropdown.set(new_name)
+                    end
+                end
+            end
+        })
+
+        local refresh_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Refresh List",
+            callback = function()
+                local configs = library:get_configs()
+                if #configs == 0 then configs = {"No configs found"} end
+                config_dropdown.refresh_options(configs)
+                notifications:create_notification({
+                    name = "Config List",
+                    info = "Refreshed config list",
+                    lifetime = 2
+                })
+            end
+        })
+
+        local export_textbox = setmetatable({items = {elements = items[ "config_frame" ]}}, library):textbox({
+            name = "Import/Export",
+            placeholder = "Paste config data here...",
+            default = "",
+            flag = library:next_flag()
+        })
+
+        local export_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Export to Clipboard",
+            callback = function()
+                local config_name = cfg.selected_config or flags[name_textbox.flag]
+                if config_name and config_name ~= "" and config_name ~= "No configs found" then
+                    local exported = library:export_config(config_name)
+                    if exported then
+                        export_textbox.set(exported)
+                        if setclipboard then
+                            setclipboard(exported)
+                            notifications:create_notification({
+                                name = "Config Exported",
+                                info = "Copied to clipboard!",
+                                lifetime = 3
+                            })
+                        else
+                            notifications:create_notification({
+                                name = "Config Exported",
+                                info = "Copy from textbox",
+                                lifetime = 3
+                            })
+                        end
+                    end
+                end
+            end
+        })
+
+        local import_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+            name = "Import from Textbox",
+            callback = function()
+                local import_data = flags[export_textbox.flag]
+                local config_name = flags[name_textbox.flag]
+                if import_data and import_data ~= "" and config_name and config_name ~= "" then
+                    if library:import_config(import_data, config_name) then
+                        local configs = library:get_configs()
+                        if #configs == 0 then configs = {"No configs found"} end
+                        config_dropdown.refresh_options(configs)
+                        config_dropdown.set(config_name)
+                    end
+                end
+            end
+        })
+
+        local autoload_toggle = setmetatable({items = {elements = items[ "config_frame" ]}}, library):toggle({
+            name = "Auto-load on startup",
+            default = false,
+            flag = library:next_flag(),
+            callback = function(enabled)
+                cfg.autoload_enabled = enabled
+                if enabled and cfg.selected_config then
+                    library:set_autoload(cfg.selected_config)
+                else
+                    library:set_autoload(nil)
+                end
+            end
+        })
+
+        return setmetatable(cfg, library)
+    end
+
 
 --
 
@@ -3932,6 +4672,7 @@ end
                 TextSize = 14;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
+            if getgenv().translator then getgenv().translator:add_element(items[ "title" ], "Text") end
             
             library:create( "UICorner" , {
                 Parent = items[ "notification" ];
@@ -3954,6 +4695,7 @@ end
                 TextSize = 14;
                 BackgroundColor3 = rgb(255, 255, 255)
             });
+            if getgenv().translator then getgenv().translator:add_element(items[ "info" ], "Text") end
             
             library:create( "UIPadding" , {
                 PaddingBottom = dim(0, 17);
@@ -4012,6 +4754,13 @@ end
     end
 
     function library:unload()
+        if self.unloading then return end
+        self.unloading = true
+
+        if self._onUnloadCallback then
+            pcall(self._onUnloadCallback)
+        end
+        
         if self.items then
             pcall(function() self.items:Destroy() end)
         end
@@ -4029,12 +4778,408 @@ end
             pcall(function() self.notifications.holder:Destroy() end)
         end
 
-        if self._onUnloadCallback then
-            pcall(self._onUnloadCallback)
-        end
-
         if getgenv().library == self then
             getgenv().library = nil
+        end
+    end
+
+    function library:get_configs()
+        local configs = {}
+        local success, files = pcall(function()
+            return listfiles(library.config.folder)
+        end)
+        
+        if success and files then
+            for _, file in pairs(files) do
+                local name = file:match("([^/\\]+)%.json$")
+                if name then
+                    insert(configs, name)
+                end
+            end
+        end
+        
+        return configs
+    end
+
+    function library:save_config(name)
+        if not name or name == "" then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Config name cannot be empty",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        if name:match("[^%w%s_-]") then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Invalid characters in config name",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        local success, err = pcall(function()
+            local data = http_service:JSONEncode(library.flags)
+            local path = library.config.folder .. "/" .. name .. ".json"
+            writefile(path, data)
+            library.config.current = name
+        end)
+        
+        if success then
+            notifications:create_notification({
+                name = "Config Saved",
+                info = "Successfully saved: " .. name,
+                lifetime = 3
+            })
+            return true
+        else
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Failed to save config",
+                lifetime = 3
+            })
+            return false
+        end
+    end
+
+    function library:load_config(name)
+        if not name or name == "" then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Config name cannot be empty",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        local path = library.config.folder .. "/" .. name .. ".json"
+        
+        local success, result = pcall(function()
+            if not isfile(path) then
+                error("Config file not found")
+            end
+            
+            local data = readfile(path)
+            local decoded = http_service:JSONDecode(data)
+            
+            for flag, value in pairs(decoded) do
+                local flag_obj = library.flag_objects[flag]
+                
+                if flag_obj and flag_obj.set then
+                    pcall(function()
+                        flag_obj.set(value)
+                    end)
+                else
+                    library.flags[flag] = value
+                end
+            end
+            
+            library.config.current = name
+            return true
+        end)
+        
+        if success and result then
+            notifications:create_notification({
+                name = "Config Loaded",
+                info = "Successfully loaded: " .. name,
+                lifetime = 3
+            })
+            return true
+        else
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Failed to load config",
+                lifetime = 3
+            })
+            return false
+        end
+    end
+
+    function library:delete_config(name)
+        if not name or name == "" then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Config name cannot be empty",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        local path = library.config.folder .. "/" .. name .. ".json"
+        
+        local success = pcall(function()
+            if isfile(path) then
+                delfile(path)
+                if library.config.current == name then
+                    library.config.current = nil
+                end
+            else
+                error("Config not found")
+            end
+        end)
+        
+        if success then
+            notifications:create_notification({
+                name = "Config Deleted",
+                info = "Successfully deleted: " .. name,
+                lifetime = 3
+            })
+            return true
+        else
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Failed to delete config",
+                lifetime = 3
+            })
+            return false
+        end
+    end
+
+    function library:duplicate_config(old_name, new_name)
+        if not old_name or old_name == "" or not new_name or new_name == "" then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Config names cannot be empty",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        if new_name:match("[^%w%s_-]") then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Invalid characters in new name",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        local old_path = library.config.folder .. "/" .. old_name .. ".json"
+        local new_path = library.config.folder .. "/" .. new_name .. ".json"
+        
+        local success = pcall(function()
+            if not isfile(old_path) then
+                error("Source config not found")
+            end
+            
+            local data = readfile(old_path)
+            writefile(new_path, data)
+        end)
+        
+        if success then
+            notifications:create_notification({
+                name = "Config Duplicated",
+                info = "Created: " .. new_name,
+                lifetime = 3
+            })
+            return true
+        else
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Failed to duplicate config",
+                lifetime = 3
+            })
+            return false
+        end
+    end
+
+    function library:rename_config(old_name, new_name)
+        if not old_name or old_name == "" or not new_name or new_name == "" then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Config names cannot be empty",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        if new_name:match("[^%w%s_-]") then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Invalid characters in new name",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        local old_path = library.config.folder .. "/" .. old_name .. ".json"
+        local new_path = library.config.folder .. "/" .. new_name .. ".json"
+        
+        local success = pcall(function()
+            if not isfile(old_path) then
+                error("Source config not found")
+            end
+            
+            local data = readfile(old_path)
+            writefile(new_path, data)
+            delfile(old_path)
+            
+            if library.config.current == old_name then
+                library.config.current = new_name
+            end
+        end)
+        
+        if success then
+            notifications:create_notification({
+                name = "Config Renamed",
+                info = "Renamed to: " .. new_name,
+                lifetime = 3
+            })
+            return true
+        else
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Failed to rename config",
+                lifetime = 3
+            })
+            return false
+        end
+    end
+
+    function library:export_config(name)
+        if not name or name == "" then
+            return nil
+        end
+        
+        local path = library.config.folder .. "/" .. name .. ".json"
+        
+        local success, result = pcall(function()
+            if not isfile(path) then
+                error("Config not found")
+            end
+            
+            local data = readfile(path)
+            local encoded = game:GetService("HttpService"):JSONEncode({
+                version = "1.0",
+                name = name,
+                data = data
+            })
+            
+            local b64 = ""
+            local b = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+            
+            for i = 1, #encoded, 3 do
+                local c1, c2, c3 = encoded:byte(i, i + 2)
+                local n = c1 * 65536 + (c2 or 0) * 256 + (c3 or 0)
+                local n1 = math.floor(n / 262144)
+                local n2 = math.floor((n % 262144) / 4096)
+                local n3 = math.floor((n % 4096) / 64)
+                local n4 = n % 64
+                b64 = b64 .. b:sub(n1 + 1, n1 + 1) .. b:sub(n2 + 1, n2 + 1) .. 
+                      (c2 and b:sub(n3 + 1, n3 + 1) or "=") .. (c3 and b:sub(n4 + 1, n4 + 1) or "=")
+            end
+            
+            return b64
+        end)
+        
+        if success then
+            return result
+        else
+            notifications:create_notification({
+                name = "Export Error",
+                info = "Failed to export config",
+                lifetime = 3
+            })
+            return nil
+        end
+    end
+
+    function library:import_config(data, name)
+        if not data or data == "" or not name or name == "" then
+            notifications:create_notification({
+                name = "Import Error",
+                info = "Invalid import data or name",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        if name:match("[^%w%s_-]") then
+            notifications:create_notification({
+                name = "Config Error",
+                info = "Invalid characters in config name",
+                lifetime = 3
+            })
+            return false
+        end
+        
+        local success = pcall(function()
+            local b = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+            local decoded = ""
+            
+            data = data:gsub("[^" .. b .. "=]", "")
+            
+            for i = 1, #data, 4 do
+                local n1 = b:find(data:sub(i, i)) - 1
+                local n2 = b:find(data:sub(i + 1, i + 1)) - 1
+                local n3 = data:sub(i + 2, i + 2) == "=" and 0 or (b:find(data:sub(i + 2, i + 2)) - 1)
+                local n4 = data:sub(i + 3, i + 3) == "=" and 0 or (b:find(data:sub(i + 3, i + 3)) - 1)
+                
+                local n = n1 * 262144 + n2 * 4096 + n3 * 64 + n4
+                local c1 = math.floor(n / 65536)
+                local c2 = math.floor((n % 65536) / 256)
+                local c3 = n % 256
+                
+                decoded = decoded .. string.char(c1)
+                if data:sub(i + 2, i + 2) ~= "=" then
+                    decoded = decoded .. string.char(c2)
+                end
+                if data:sub(i + 3, i + 3) ~= "=" then
+                    decoded = decoded .. string.char(c3)
+                end
+            end
+            
+            local config_data = http_service:JSONDecode(decoded)
+            local path = library.config.folder .. "/" .. name .. ".json"
+            writefile(path, config_data.data)
+        end)
+        
+        if success then
+            notifications:create_notification({
+                name = "Config Imported",
+                info = "Successfully imported: " .. name,
+                lifetime = 3
+            })
+            return true
+        else
+            notifications:create_notification({
+                name = "Import Error",
+                info = "Failed to import config",
+                lifetime = 3
+            })
+            return false
+        end
+    end
+
+    function library:set_autoload(name)
+        local success = pcall(function()
+            if name and name ~= "" then
+                writefile(library.config.autoload_file, name)
+            else
+                if isfile(library.config.autoload_file) then
+                    delfile(library.config.autoload_file)
+                end
+            end
+        end)
+        
+        return success
+    end
+
+    function library:load_autoload()
+        local success, name = pcall(function()
+            if isfile(library.config.autoload_file) then
+                return readfile(library.config.autoload_file)
+            end
+            return nil
+        end)
+        
+        if success and name and name ~= "" then
+            task.spawn(function()
+                task.wait(0.5)
+                library:load_config(name)
+            end)
         end
     end
 
