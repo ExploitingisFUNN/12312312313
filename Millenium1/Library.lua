@@ -2938,6 +2938,10 @@ end
             local itemCount = math.max(1, #cfg.option_instances)
             local visibleHeight = math.min(maxVisible, itemCount) * rowHeight + 9
             local fullHeight = math.max(25, cfg.y_size)
+            
+            if itemCount <= 2 then
+                visibleHeight = math.max(visibleHeight, 80)
+            end
 
             local targetHeight = bool and math.max(25, math.min(fullHeight, visibleHeight)) or 0
             library:tween(items[ "dropdown_holder" ], {Size = dim_offset(items[ "dropdown" ].AbsoluteSize.X, targetHeight)})
