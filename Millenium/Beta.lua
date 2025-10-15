@@ -2309,6 +2309,8 @@ end
         end;
         
         function cfg.set(bool)
+            cfg.enabled = bool
+            
             if cfg.type == "checkbox" then 
                 library:tween(items[ "tick" ], {Rotation = bool and 0 or 45, ImageTransparency = bool and 0 or 1})
                 library:tween(items[ "toggle_button" ], {BackgroundColor3 = bool and themes.preset.accent or rgb(67, 67, 68)})
@@ -2818,11 +2820,10 @@ end
                 Text = tostring(text);
                 Parent = items[ "list_scroller" ];
                 Name = "\0";
-                Size = dim2(1, -12, 0, 0);
+                Size = dim2(1, -12, 0, 20);
                 BackgroundTransparency = 0;
                 TextXAlignment = Enum.TextXAlignment.Left;
                 BorderSizePixel = 0;
-                AutomaticSize = Enum.AutomaticSize.Y;
                 TextSize = 14;
                 BackgroundColor3 = rgb(33, 33, 35);
                 ZIndex = 10;
@@ -2832,9 +2833,10 @@ end
             
             library:create( "UIPadding" , {
                 Parent = button;
-                PaddingTop = dim(0, 1);
+                PaddingTop = dim(0, 2);
                 PaddingRight = dim(0, 5);
-                PaddingLeft = dim(0, 5)
+                PaddingLeft = dim(0, 5);
+                PaddingBottom = dim(0, 2)
             });
             
             return button
@@ -2842,14 +2844,14 @@ end
         
         function cfg.set_visible(bool)
             local maxVisible = 5
-            local rowHeight = 21
-            local visibleHeight = math.min(maxVisible, #cfg.option_instances) * rowHeight + 12
+            local rowHeight = 25
+            local visibleHeight = math.min(maxVisible, #cfg.option_instances) * rowHeight + 9
             local fullHeight = cfg.y_size
 
             local targetHeight = bool and math.min(fullHeight, visibleHeight) or 0
             library:tween(items[ "dropdown_holder" ], {Size = dim_offset(items[ "dropdown" ].AbsoluteSize.X, targetHeight)})
 
-            items[ "dropdown_holder" ].Position = dim2(0, items[ "dropdown" ].AbsolutePosition.X, 0, items[ "dropdown" ].AbsolutePosition.Y + 80)
+            items[ "dropdown_holder" ].Position = dim2(0, items[ "dropdown" ].AbsolutePosition.X, 0, items[ "dropdown" ].AbsolutePosition.Y + 20)
 
             if items[ "list_scroller" ] then
                 items[ "list_scroller" ].CanvasSize = dim2(0, 0, 0, math.max(0, fullHeight - visibleHeight))
@@ -2894,7 +2896,7 @@ end
 
             for _, option in list do 
                 local button = cfg.render_option(option)
-                cfg.y_size += button.AbsoluteSize.Y + 6
+                cfg.y_size += 25
                 insert(cfg.option_instances, button)
                 
                 button.MouseButton1Down:Connect(function()
