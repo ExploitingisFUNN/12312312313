@@ -2104,12 +2104,17 @@ end
             default = options.default or false,
             folding = options.folding or false, 
             callback = options.callback or function() end,
+            
+            keybind = options.keybind ~= false,
+            keybind_flag = options.flag and (options.flag .. "_keybind") or library:next_flag(),
+            keybind_default = options.keybind_default or nil,
 
             items = {};
             seperator = options.seperator or options.Seperator or false;
         }
 
         flags[cfg.flag] = cfg.default
+        flags[cfg.keybind_flag] = {key = cfg.keybind_default, active = false, mode = "Toggle"}
 
         local items = cfg.items; do
             items[ "toggle" ] = library:create( "TextButton" , {
@@ -2305,7 +2310,41 @@ end
                         CornerRadius = dim(0, 999)
                     });                        
                 end 
-            --                
+            --
+            
+            if cfg.keybind then
+                items[ "keybind_holder" ] = library:create( "TextButton" , {
+                    FontFace = fonts.small;
+                    TextColor3 = rgb(86, 86, 87);
+                    BorderColor3 = rgb(0, 0, 0);
+                    Text = "[NONE]";
+                    AutoButtonColor = false;
+                    LayoutOrder = 1;
+                    AnchorPoint = vec2(1, 0);
+                    Parent = items[ "right_components" ];
+                    Name = "\0";
+                    Size = dim2(0, 0, 0, 16);
+                    BorderSizePixel = 0;
+                    AutomaticSize = Enum.AutomaticSize.X;
+                    TextSize = 12;
+                    BackgroundColor3 = rgb(33, 33, 35)
+                });
+                
+                library:create( "UICorner" , {
+                    Parent = items[ "keybind_holder" ];
+                    CornerRadius = dim(0, 4)
+                });
+                
+                library:create( "UIPadding" , {
+                    Parent = items[ "keybind_holder" ];
+                    PaddingTop = dim(0, 1);
+                    PaddingRight = dim(0, 5);
+                    PaddingLeft = dim(0, 5)
+                });
+                
+                cfg.binding = nil
+                cfg.keybind_key = cfg.keybind_default
+            end                
         end;
         
         function cfg.set(bool)
@@ -2339,6 +2378,57 @@ end
             cfg.enabled = not cfg.enabled 
             cfg.set(cfg.enabled)
         end)
+        
+        if cfg.keybind then
+            function cfg.set_keybind(key)
+                cfg.keybind_key = key
+                local text = "NONE"
+                
+                if key and tostring(key) ~= "Enums" then
+                    text = keys[key] or tostring(key):gsub("Enum.KeyCode.", ""):gsub("Enum.UserInputType.", "")
+                end
+                
+                items[ "keybind_holder" ].Text = "[" .. text .. "]"
+                flags[cfg.keybind_flag] = {key = key, active = false, mode = "Toggle"}
+                library.flag_objects[cfg.keybind_flag] = {
+                    set = function(value)
+                        if type(value) == "table" and value.key then
+                            cfg.set_keybind(value.key)
+                        end
+                    end
+                }
+            end
+            
+            items[ "keybind_holder" ].MouseButton1Click:Connect(function()
+                items[ "keybind_holder" ].Text = "[...]"
+                
+                cfg.binding = library:connection(uis.InputBegan, function(input, gpe)
+                    local key = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
+                    
+                    if key == Enum.KeyCode.Escape then
+                        cfg.set_keybind(nil)
+                    else
+                        cfg.set_keybind(key)
+                    end
+                    
+                    cfg.binding:Disconnect()
+                    cfg.binding = nil
+                end)
+            end)
+            
+            library:connection(uis.InputBegan, function(input, gpe)
+                if gpe or cfg.binding then return end
+                
+                local key = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.UserInputType
+                
+                if key == cfg.keybind_key and cfg.keybind_key then
+                    cfg.enabled = not cfg.enabled
+                    cfg.set(cfg.enabled)
+                end
+            end)
+            
+            cfg.set_keybind(cfg.keybind_key)
+        end
         
         if cfg.seperator then -- ok bro my lua either sucks or this was a pain in the ass to make (simple if statement aswell 💔)
             library:create( "Frame" , {
@@ -2845,10 +2935,11 @@ end
         function cfg.set_visible(bool)
             local maxVisible = 5
             local rowHeight = 25
-            local visibleHeight = math.min(maxVisible, #cfg.option_instances) * rowHeight + 9
-            local fullHeight = cfg.y_size
+            local itemCount = math.max(1, #cfg.option_instances)
+            local visibleHeight = math.min(maxVisible, itemCount) * rowHeight + 9
+            local fullHeight = math.max(25, cfg.y_size)
 
-            local targetHeight = bool and math.min(fullHeight, visibleHeight) or 0
+            local targetHeight = bool and math.max(25, math.min(fullHeight, visibleHeight)) or 0
             library:tween(items[ "dropdown_holder" ], {Size = dim_offset(items[ "dropdown" ].AbsoluteSize.X, targetHeight)})
 
             items[ "dropdown_holder" ].Position = dim2(0, items[ "dropdown" ].AbsolutePosition.X, 0, items[ "dropdown" ].AbsolutePosition.Y + 20)
