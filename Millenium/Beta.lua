@@ -4411,6 +4411,7 @@ end
             options = available_configs,
             default = available_configs[1],
             flag = library:next_flag(),
+            width = 220,
             callback = function(selected)
                 if selected and selected ~= "No configs found" then
                     cfg.selected_config = selected
