@@ -2891,7 +2891,7 @@ end
 
                 library:create( "UIListLayout" , {
                     Parent = items[ "list_scroller" ];
-                    Padding = dim(0, 5);
+                    Padding = dim(0, 4);
                     SortOrder = Enum.SortOrder.LayoutOrder
                 });
                 
@@ -2910,7 +2910,7 @@ end
                 Text = tostring(text);
                 Parent = items[ "list_scroller" ];
                 Name = "\0";
-                Size = dim2(1, -12, 0, 20);
+                Size = dim2(1, -12, 0, 24);
                 BackgroundTransparency = 0;
                 TextXAlignment = Enum.TextXAlignment.Left;
                 BorderSizePixel = 0;
@@ -2933,8 +2933,8 @@ end
         end
         
         function cfg.set_visible(bool)
-            local maxVisible = 5
-            local rowHeight = 25
+            local maxVisible = 10
+            local rowHeight = 28
             local itemCount = math.max(1, #cfg.option_instances)
             local visibleHeight = math.min(maxVisible, itemCount) * rowHeight + 9
             local fullHeight = math.max(25, cfg.y_size)
@@ -2987,7 +2987,7 @@ end
 
             for _, option in list do 
                 local button = cfg.render_option(option)
-                cfg.y_size += 25
+                cfg.y_size += 29
                 insert(cfg.option_instances, button)
                 
                 button.MouseButton1Down:Connect(function()
