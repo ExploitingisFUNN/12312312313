@@ -2891,7 +2891,7 @@ end
 
                 library:create( "UIListLayout" , {
                     Parent = items[ "list_scroller" ];
-                    Padding = dim(0, 5);
+                    Padding = dim(0, 4);
                     SortOrder = Enum.SortOrder.LayoutOrder
                 });
                 
@@ -2910,7 +2910,7 @@ end
                 Text = tostring(text);
                 Parent = items[ "list_scroller" ];
                 Name = "\0";
-                Size = dim2(1, -12, 0, 20);
+                Size = dim2(1, -12, 0, 24);
                 BackgroundTransparency = 0;
                 TextXAlignment = Enum.TextXAlignment.Left;
                 BorderSizePixel = 0;
@@ -2933,8 +2933,8 @@ end
         end
         
         function cfg.set_visible(bool)
-            local maxVisible = 5
-            local rowHeight = 25
+            local maxVisible = 10
+            local rowHeight = 28
             local itemCount = math.max(1, #cfg.option_instances)
             local visibleHeight = math.min(maxVisible, itemCount) * rowHeight + 9
             local fullHeight = math.max(25, cfg.y_size)
@@ -2987,7 +2987,7 @@ end
 
             for _, option in list do 
                 local button = cfg.render_option(option)
-                cfg.y_size += 25
+                cfg.y_size += 29
                 insert(cfg.option_instances, button)
                 
                 button.MouseButton1Down:Connect(function()
@@ -4394,26 +4394,7 @@ end
             autoload_enabled = false;
         }
 
-        local items = cfg.items; do
-            items[ "config_frame" ] = library:create( "Frame" , {
-                Parent = self.items[ "elements" ];
-                BackgroundTransparency = 1;
-                Name = "\0";
-                Size = dim2(1, 0, 0, 0);
-                BorderColor3 = rgb(0, 0, 0);
-                BorderSizePixel = 0;
-                AutomaticSize = Enum.AutomaticSize.Y;
-                BackgroundColor3 = rgb(255, 255, 255)
-            });
-            
-            library:create( "UIListLayout" , {
-                Parent = items[ "config_frame" ];
-                Padding = dim(0, 10);
-                SortOrder = Enum.SortOrder.LayoutOrder
-            });
-        end
-
-        local name_textbox = setmetatable({items = {elements = items[ "config_frame" ]}}, library):textbox({
+        local name_textbox = self:textbox({
             name = "Config Name",
             placeholder = "Enter config name...",
             default = "",
@@ -4425,7 +4406,7 @@ end
             available_configs = {"No configs found"}
         end
 
-        local config_dropdown = setmetatable({items = {elements = items[ "config_frame" ]}}, library):dropdown({
+        local config_dropdown = self:dropdown({
             name = "Select Config",
             options = available_configs,
             default = available_configs[1],
@@ -4438,7 +4419,7 @@ end
             end
         })
 
-        local save_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local save_button = self:button({
             name = "Save Config",
             callback = function()
                 local config_name = flags[name_textbox.flag]
@@ -4453,7 +4434,7 @@ end
             end
         })
 
-        local load_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local load_button = self:button({
             name = "Load Config",
             callback = function()
                 local config_name = cfg.selected_config or flags[name_textbox.flag]
@@ -4463,7 +4444,7 @@ end
             end
         })
 
-        local delete_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local delete_button = self:button({
             name = "Delete Config",
             callback = function()
                 local config_name = cfg.selected_config or flags[name_textbox.flag]
@@ -4478,7 +4459,7 @@ end
             end
         })
 
-        local duplicate_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local duplicate_button = self:button({
             name = "Duplicate Config",
             callback = function()
                 local old_name = cfg.selected_config
@@ -4494,7 +4475,7 @@ end
             end
         })
 
-        local rename_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local rename_button = self:button({
             name = "Rename Config",
             callback = function()
                 local old_name = cfg.selected_config
@@ -4510,7 +4491,7 @@ end
             end
         })
 
-        local refresh_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local refresh_button = self:button({
             name = "Refresh List",
             callback = function()
                 local configs = library:get_configs()
@@ -4524,14 +4505,14 @@ end
             end
         })
 
-        local export_textbox = setmetatable({items = {elements = items[ "config_frame" ]}}, library):textbox({
+        local export_textbox = self:textbox({
             name = "Import/Export",
             placeholder = "Paste config data here...",
             default = "",
             flag = library:next_flag()
         })
 
-        local export_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local export_button = self:button({
             name = "Export to Clipboard",
             callback = function()
                 local config_name = cfg.selected_config or flags[name_textbox.flag]
@@ -4558,7 +4539,7 @@ end
             end
         })
 
-        local import_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local import_button = self:button({
             name = "Import from Textbox",
             callback = function()
                 local import_data = flags[export_textbox.flag]
@@ -4574,7 +4555,7 @@ end
             end
         })
 
-        local autoload_toggle = setmetatable({items = {elements = items[ "config_frame" ]}}, library):toggle({
+        local autoload_toggle = self:toggle({
             name = "Auto-load on startup",
             default = false,
             flag = library:next_flag(),
@@ -4588,7 +4569,10 @@ end
             end
         })
 
-        return setmetatable(cfg, library)
+        if library:get_autoload() then
+            autoload_toggle.set(true)
+            cfg.autoload_enabled = true
+        end
     end
 
 
