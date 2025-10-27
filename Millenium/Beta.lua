@@ -180,30 +180,45 @@ end
 library.cant_drag_forced = false
 
 local fonts = {}; do
+    local file_api_available = writefile and isfile and delfile and getcustomasset
+
     function Register_Font(Name, Weight, Style, Asset)
-        if not isfile(Asset.Id) then
-            writefile(Asset.Id, Asset.Font)
+        if not file_api_available then
+            return Font.fromEnum(Enum.Font.Gotham)
         end
 
-        if isfile(Name .. ".font") then
-            delfile(Name .. ".font")
-        end
+        local ok, result = pcall(function()
+            if not isfile(Asset.Id) then
+                writefile(Asset.Id, Asset.Font)
+            end
 
-        local Data = {
-            name = Name,
-            faces = {
-                {
-                    name = "Normal",
-                    weight = Weight,
-                    style = Style,
-                    assetId = getcustomasset(Asset.Id),
+            if isfile(Name .. ".font") then
+                delfile(Name .. ".font")
+            end
+
+            local Data = {
+                name = Name,
+                faces = {
+                    {
+                        name = "Normal",
+                        weight = Weight,
+                        style = Style,
+                        assetId = getcustomasset(Asset.Id),
+                    },
                 },
-            },
-        }
+            }
 
-        writefile(Name .. ".font", http_service:JSONEncode(Data))
+            writefile(Name .. ".font", http_service:JSONEncode(Data))
 
-        return getcustomasset(Name .. ".font");
+            return getcustomasset(Name .. ".font");
+        end)
+
+        if ok then
+            return result
+        else
+            file_api_available = false
+            return Font.fromEnum(Enum.Font.Gotham)
+        end
     end
     
     local Medium = Register_Font("Medium", 200, "Normal", {
