@@ -3130,6 +3130,15 @@ end
                 SortOrder = Enum.SortOrder.LayoutOrder
             });                
         end 
+        
+        function cfg.set_text(text)
+            cfg.name = text
+            items[ "name" ].Text = text
+        end
+        
+        function cfg.set_name(text)
+            cfg.set_text(text)
+        end
 
         if cfg.seperator then 
             library:create( "Frame" , {
@@ -3738,6 +3747,14 @@ end
 
             cfg.callback(text)
         end 
+        
+        function cfg.get()
+            return items[ "input" ].Text
+        end
+        
+        function cfg.clear()
+            cfg.set("")
+        end
         
         items[ "input" ]:GetPropertyChangedSignal("Text"):Connect(function()
             cfg.set(items[ "input" ].Text) 
