@@ -180,30 +180,45 @@ end
 library.cant_drag_forced = false
 
 local fonts = {}; do
+    local file_api_available = writefile and isfile and delfile and getcustomasset
+
     function Register_Font(Name, Weight, Style, Asset)
-        if not isfile(Asset.Id) then
-            writefile(Asset.Id, Asset.Font)
+        if not file_api_available then
+            return Font.fromEnum(Enum.Font.Gotham)
         end
 
-        if isfile(Name .. ".font") then
-            delfile(Name .. ".font")
-        end
+        local ok, result = pcall(function()
+            if not isfile(Asset.Id) then
+                writefile(Asset.Id, Asset.Font)
+            end
 
-        local Data = {
-            name = Name,
-            faces = {
-                {
-                    name = "Normal",
-                    weight = Weight,
-                    style = Style,
-                    assetId = getcustomasset(Asset.Id),
+            if isfile(Name .. ".font") then
+                delfile(Name .. ".font")
+            end
+
+            local Data = {
+                name = Name,
+                faces = {
+                    {
+                        name = "Normal",
+                        weight = Weight,
+                        style = Style,
+                        assetId = getcustomasset(Asset.Id),
+                    },
                 },
-            },
-        }
+            }
 
-        writefile(Name .. ".font", http_service:JSONEncode(Data))
+            writefile(Name .. ".font", http_service:JSONEncode(Data))
 
-        return getcustomasset(Name .. ".font");
+            return getcustomasset(Name .. ".font");
+        end)
+
+        if ok then
+            return result
+        else
+            file_api_available = false
+            return Font.fromEnum(Enum.Font.Gotham)
+        end
     end
     
     local Medium = Register_Font("Medium", 200, "Normal", {
@@ -524,19 +539,10 @@ end
 
 -- Library functions 
 -- Misc functions
-    function library:tween(obj, properties, easing_style, duration)
-        if not obj or not properties then return nil end
-        local success, tween = pcall(function()
-            local info = TweenInfo.new(duration or 0.25, easing_style or Enum.EasingStyle.Quint, Enum.EasingDirection.InOut, 0, false, 0)
-            return tween_service:Create(obj, info, properties)
-        end)
-        
-        if success and tween then
-            tween:Play()
-            return tween
-        end
-        
-        return nil
+    function library:tween(obj, properties, easing_style, time) 
+        local tween = tween_service:Create(obj, TweenInfo.new(time or 0.25, easing_style or Enum.EasingStyle.Quint, Enum.EasingDirection.InOut, 0, false, 0), properties):Play()
+            
+        return tween
     end
 
     function library:resizify(frame) 
@@ -1609,66 +1615,57 @@ end
         end 
 
         function cfg.open_tab() 
-            pcall(function()
-                local selected_tab = self.selected_tab
-                
-                if selected_tab then 
-                    if selected_tab[ 4 ] ~= items[ "tab_holder" ] then 
-                        if self.items and self.items[ "global_fade" ] then
-                            self.items[ "global_fade" ].BackgroundTransparency = 0
-                            library:tween(self.items[ "global_fade" ], {BackgroundTransparency = 1}, Enum.EasingStyle.Quad, 0.4)
-                        end
-                        if selected_tab[ 4 ] then
-                            selected_tab[ 4 ].Size = dim2(1, -216, 1, -101)
-                        end
-                    end
-
-                    library:tween(selected_tab[ 1 ], {BackgroundTransparency = 1})
-                    library:tween(selected_tab[ 2 ], {ImageColor3 = rgb(72, 72, 73)})
-                    library:tween(selected_tab[ 3 ], {TextColor3 = rgb(72, 72, 73)})
-
-                    if selected_tab[ 4 ] then
-                        selected_tab[ 4 ].Visible = false
-                        selected_tab[ 4 ].Parent = library[ "cache" ]
-                    end
-                    if selected_tab[ 5 ] then
-                        selected_tab[ 5 ].Visible = false
-                        selected_tab[ 5 ].Parent = library[ "cache" ]
-                    end
+            local selected_tab = self.selected_tab
+            
+            if selected_tab then 
+                if selected_tab[ 4 ] ~= items[ "tab_holder" ] then 
+                    self.items[ "global_fade" ].BackgroundTransparency = 0
+                    
+                    library:tween(self.items[ "global_fade" ], {BackgroundTransparency = 1}, Enum.EasingStyle.Quad, 0.4)
+                    selected_tab[ 4 ].Size = dim2(1, -216, 1, -101)
                 end
 
-                library:tween(items[ "button" ], {BackgroundTransparency = 0})
-                library:tween(items[ "icon" ], {ImageColor3 = themes.preset.accent})
-                library:tween(items[ "name" ], {TextColor3 = rgb(255, 255, 255)})
-                
-                local SidebarOffset = self.SidebarVisible and -196 or 0
-                library:tween(items[ "tab_holder" ], {Size = dim2(1, SidebarOffset, 1, -81)}, Enum.EasingStyle.Quad, 0.4)
-                
-                items[ "tab_holder" ].Visible = true 
-                items[ "tab_holder" ].Parent = self.items[ "main" ]
-                
-                local TabHolderPosX = self.SidebarVisible and 196 or 0
-                items[ "tab_holder" ].Position = dim2(0, TabHolderPosX, 0, 56)
-                
-                items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.None
-                items[ "tab_holder" ].CanvasSize = dim2(0,0,0,5000)
-                items[ "tab_holder" ].ScrollBarThickness = library.is_mobile and 6 or 3
-                items[ "tab_holder" ].ScrollingEnabled = true
-                items[ "tab_holder" ].Active = true
-                items[ "tab_holder" ].ElasticBehavior = Enum.ElasticBehavior.Always
-                items[ "multi_section_button_holder" ].Visible = true 
-                items[ "multi_section_button_holder" ].Parent = self.items[ "multi_holder" ]
+                library:tween(selected_tab[ 1 ], {BackgroundTransparency = 1})
+                library:tween(selected_tab[ 2 ], {ImageColor3 = rgb(72, 72, 73)})
+                library:tween(selected_tab[ 3 ], {TextColor3 = rgb(72, 72, 73)})
 
-                self.selected_tab = {
-                    items[ "button" ];
-                    items[ "icon" ];
-                    items[ "name" ];
-                    items[ "tab_holder" ];
-                    items[ "multi_section_button_holder" ];
-                }
+                selected_tab[ 4 ].Visible = false
+                selected_tab[ 4 ].Parent = library[ "cache" ]
+                selected_tab[ 5 ].Visible = false
+                selected_tab[ 5 ].Parent = library[ "cache" ]
+            end
 
-                library:close_element()
-            end)
+            library:tween(items[ "button" ], {BackgroundTransparency = 0})
+            library:tween(items[ "icon" ], {ImageColor3 = themes.preset.accent})
+            library:tween(items[ "name" ], {TextColor3 = rgb(255, 255, 255)})
+            
+            local SidebarOffset = self.SidebarVisible and -196 or 0
+            library:tween(items[ "tab_holder" ], {Size = dim2(1, SidebarOffset, 1, -81)}, Enum.EasingStyle.Quad, 0.4)
+            
+            items[ "tab_holder" ].Visible = true 
+            items[ "tab_holder" ].Parent = self.items[ "main" ]
+            
+            local TabHolderPosX = self.SidebarVisible and 196 or 0
+            items[ "tab_holder" ].Position = dim2(0, TabHolderPosX, 0, 56)
+            
+            items[ "tab_holder" ].AutomaticCanvasSize = Enum.AutomaticSize.None
+            items[ "tab_holder" ].CanvasSize = dim2(0,0,0,5000)
+            items[ "tab_holder" ].ScrollBarThickness = library.is_mobile and 6 or 3
+            items[ "tab_holder" ].ScrollingEnabled = true
+            items[ "tab_holder" ].Active = true
+            items[ "tab_holder" ].ElasticBehavior = Enum.ElasticBehavior.Always
+            items[ "multi_section_button_holder" ].Visible = true 
+            items[ "multi_section_button_holder" ].Parent = self.items[ "multi_holder" ]
+
+            self.selected_tab = {
+                items[ "button" ];
+                items[ "icon" ];
+                items[ "name" ];
+                items[ "tab_holder" ];
+                items[ "multi_section_button_holder" ];
+            }
+
+            library:close_element()
         end
 
         items[ "button" ].MouseButton1Down:Connect(function()
