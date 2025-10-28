@@ -180,45 +180,30 @@ end
 library.cant_drag_forced = false
 
 local fonts = {}; do
-    local file_api_available = writefile and isfile and delfile and getcustomasset
-
     function Register_Font(Name, Weight, Style, Asset)
-        if not file_api_available then
-            return Font.fromEnum(Enum.Font.Gotham)
+        if not isfile(Asset.Id) then
+            writefile(Asset.Id, Asset.Font)
         end
 
-        local ok, result = pcall(function()
-            if not isfile(Asset.Id) then
-                writefile(Asset.Id, Asset.Font)
-            end
+        if isfile(Name .. ".font") then
+            delfile(Name .. ".font")
+        end
 
-            if isfile(Name .. ".font") then
-                delfile(Name .. ".font")
-            end
-
-            local Data = {
-                name = Name,
-                faces = {
-                    {
-                        name = "Normal",
-                        weight = Weight,
-                        style = Style,
-                        assetId = getcustomasset(Asset.Id),
-                    },
+        local Data = {
+            name = Name,
+            faces = {
+                {
+                    name = "Normal",
+                    weight = Weight,
+                    style = Style,
+                    assetId = getcustomasset(Asset.Id),
                 },
-            }
+            },
+        }
 
-            writefile(Name .. ".font", http_service:JSONEncode(Data))
+        writefile(Name .. ".font", http_service:JSONEncode(Data))
 
-            return getcustomasset(Name .. ".font");
-        end)
-
-        if ok then
-            return result
-        else
-            file_api_available = false
-            return Font.fromEnum(Enum.Font.Gotham)
-        end
+        return getcustomasset(Name .. ".font");
     end
     
     local Medium = Register_Font("Medium", 200, "Normal", {
@@ -539,10 +524,19 @@ end
 
 -- Library functions 
 -- Misc functions
-    function library:tween(obj, properties, easing_style, time) 
-        local tween = tween_service:Create(obj, TweenInfo.new(time or 0.25, easing_style or Enum.EasingStyle.Quint, Enum.EasingDirection.InOut, 0, false, 0), properties):Play()
-            
-        return tween
+    function library:tween(obj, properties, easing_style, duration)
+        if not obj or not properties then return nil end
+        local success, tween = pcall(function()
+            local info = TweenInfo.new(duration or 0.25, easing_style or Enum.EasingStyle.Quint, Enum.EasingDirection.InOut, 0, false, 0)
+            return tween_service:Create(obj, info, properties)
+        end)
+        
+        if success and tween then
+            tween:Play()
+            return tween
+        end
+        
+        return nil
     end
 
     function library:resizify(frame) 
