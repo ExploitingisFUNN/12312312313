@@ -1358,7 +1358,7 @@ end
                     BorderColor3 = rgb(0, 0, 0);
                     Parent = items[ "button" ];
                     AnchorPoint = vec2(0, 0.5);
-                    Image = cfg.icon;
+                    Image = "http://www.roblox.com/asset/?id=6034767608";
                     BackgroundTransparency = 1;
                     Position = dim2(0, 10, 0.5, 0);
                     Name = "\0";
@@ -1698,13 +1698,10 @@ end
     -- Miscellaneous 
         function library:column(properties) 
             local cfg = {items = {}, size = properties.size or 1}
-            
-            -- Get the parent container for columns
-            local parent_container = self[ "parent" ] or self.items["tab_parent"]
 
             local items = cfg.items; do     
                 items[ "column" ] = library:create( "Frame" , {
-                    Parent = parent_container;
+                    Parent = self[ "parent" ] or self.items["tab_parent"];
                     BackgroundTransparency = 1;
                     Name = "\0";
                     BorderColor3 = rgb(0, 0, 0);
@@ -1781,84 +1778,10 @@ end
             items = {};
         };
         
-        -- Auto-distribute sections between columns
-        -- Get the parent column and its parent container (tab_parent)
-        local target_column = self.items[ "column" ]
-        local parent_container = target_column and target_column.Parent
-        
-        if not library.is_mobile and parent_container and target_column then
-            -- Initialize tracking table on library if not exists
-            if not library._column_tracking then
-                library._column_tracking = {}
-            end
-            
-            local container_id = tostring(parent_container)
-            if not library._column_tracking[container_id] then
-                library._column_tracking[container_id] = {
-                    section_count = 0,
-                    right_column = nil
-                }
-            end
-            
-            local tracking = library._column_tracking[container_id]
-            
-            -- Count existing columns in parent
-            local columns = {}
-            for _, child in parent_container:GetChildren() do
-                if child:IsA("Frame") and child.BackgroundTransparency == 1 then
-                    insert(columns, child)
-                end
-            end
-            
-            tracking.section_count = tracking.section_count + 1
-            
-            -- If there's only one column but multiple sections, create a second column and alternate
-            if #columns == 1 and tracking.section_count > 1 then
-                -- Check if we already created the auto-right column
-                if not tracking.right_column or not tracking.right_column.Parent then
-                    -- Create a second column (right)
-                    tracking.right_column = library:create( "Frame" , {
-                        Parent = parent_container;
-                        BackgroundTransparency = 1;
-                        Name = "\0";
-                        BorderColor3 = rgb(0, 0, 0);
-                        Size = dim2(0, 0, 0.5, 0);
-                        BorderSizePixel = 0;
-                        BackgroundColor3 = rgb(255, 255, 255);
-                        AutomaticSize = Enum.AutomaticSize.None;
-                        LayoutOrder = 2;
-                    })
-                    
-                    library:create( "UIPadding" , {
-                        PaddingBottom = dim(0, 10);
-                        PaddingTop = dim(0, 0);
-                        Parent = tracking.right_column
-                    })
-                    
-                    library:create( "UIListLayout" , {
-                        Parent = tracking.right_column;
-                        HorizontalFlex = Enum.UIFlexAlignment.Fill;
-                        Padding = dim(0, 10);
-                        FillDirection = Enum.FillDirection.Vertical;
-                        SortOrder = Enum.SortOrder.LayoutOrder
-                    })
-                    
-                    -- Resize the original column to 50%
-                    target_column.Size = dim2(0, 0, 0.5, 0)
-                    target_column.LayoutOrder = 1
-                end
-                
-                -- Alternate sections between left and right columns
-                if tracking.section_count % 2 == 0 then
-                    target_column = tracking.right_column
-                end
-            end
-        end
-        
         local items = cfg.items; do 
             items[ "outline" ] = library:create( "Frame" , {
                 Name = "\0";
-                Parent = target_column or self.items[ "column" ];
+                Parent = self.items[ "column" ];
                 BorderColor3 = rgb(0, 0, 0);
                 Size = library.is_mobile and dim2(1, 0, 0, 0) or dim2(1, 0, cfg.size, -3);
                 BorderSizePixel = 0;
@@ -2968,7 +2891,7 @@ end
 
                 library:create( "UIListLayout" , {
                     Parent = items[ "list_scroller" ];
-                    Padding = dim(0, 5);
+                    Padding = dim(0, 4);
                     SortOrder = Enum.SortOrder.LayoutOrder
                 });
                 
@@ -2987,7 +2910,7 @@ end
                 Text = tostring(text);
                 Parent = items[ "list_scroller" ];
                 Name = "\0";
-                Size = dim2(1, -12, 0, 20);
+                Size = dim2(1, -12, 0, 24);
                 BackgroundTransparency = 0;
                 TextXAlignment = Enum.TextXAlignment.Left;
                 BorderSizePixel = 0;
@@ -3010,15 +2933,11 @@ end
         end
         
         function cfg.set_visible(bool)
-            local maxVisible = 5
-            local rowHeight = 25
+            local maxVisible = 10
+            local rowHeight = 28
             local itemCount = math.max(1, #cfg.option_instances)
             local visibleHeight = math.min(maxVisible, itemCount) * rowHeight + 9
             local fullHeight = math.max(25, cfg.y_size)
-            
-            if itemCount <= 2 then
-                visibleHeight = math.max(visibleHeight, 80)
-            end
 
             local targetHeight = bool and math.max(25, math.min(fullHeight, visibleHeight)) or 0
             library:tween(items[ "dropdown_holder" ], {Size = dim_offset(items[ "dropdown" ].AbsoluteSize.X, targetHeight)})
@@ -3068,7 +2987,7 @@ end
 
             for _, option in list do 
                 local button = cfg.render_option(option)
-                cfg.y_size += 25
+                cfg.y_size += 29
                 insert(cfg.option_instances, button)
                 
                 button.MouseButton1Down:Connect(function()
@@ -3211,6 +3130,20 @@ end
                 SortOrder = Enum.SortOrder.LayoutOrder
             });                
         end 
+        
+        function cfg.set_text(text)
+            -- Handle colon-style calls where self is passed as first arg
+            if type(text) == "table" then
+                text = tostring(text.name or text.Name or "")
+            end
+            text = tostring(text or "")
+            cfg.name = text
+            items[ "name" ].Text = text
+        end
+        
+        function cfg.set_name(text)
+            cfg.set_text(text)
+        end
 
         if cfg.seperator then 
             library:create( "Frame" , {
@@ -3819,6 +3752,14 @@ end
 
             cfg.callback(text)
         end 
+        
+        function cfg.get()
+            return items[ "input" ].Text
+        end
+        
+        function cfg.clear()
+            cfg.set("")
+        end
         
         items[ "input" ]:GetPropertyChangedSignal("Text"):Connect(function()
             cfg.set(items[ "input" ].Text) 
@@ -4475,26 +4416,7 @@ end
             autoload_enabled = false;
         }
 
-        local items = cfg.items; do
-            items[ "config_frame" ] = library:create( "Frame" , {
-                Parent = self.items[ "elements" ];
-                BackgroundTransparency = 1;
-                Name = "\0";
-                Size = dim2(1, 0, 0, 0);
-                BorderColor3 = rgb(0, 0, 0);
-                BorderSizePixel = 0;
-                AutomaticSize = Enum.AutomaticSize.Y;
-                BackgroundColor3 = rgb(255, 255, 255)
-            });
-            
-            library:create( "UIListLayout" , {
-                Parent = items[ "config_frame" ];
-                Padding = dim(0, 10);
-                SortOrder = Enum.SortOrder.LayoutOrder
-            });
-        end
-
-        local name_textbox = setmetatable({items = {elements = items[ "config_frame" ]}}, library):textbox({
+        local name_textbox = self:textbox({
             name = "Config Name",
             placeholder = "Enter config name...",
             default = "",
@@ -4506,11 +4428,12 @@ end
             available_configs = {"No configs found"}
         end
 
-        local config_dropdown = setmetatable({items = {elements = items[ "config_frame" ]}}, library):dropdown({
+        local config_dropdown = self:dropdown({
             name = "Select Config",
             options = available_configs,
             default = available_configs[1],
             flag = library:next_flag(),
+            width = 220,
             callback = function(selected)
                 if selected and selected ~= "No configs found" then
                     cfg.selected_config = selected
@@ -4519,7 +4442,7 @@ end
             end
         })
 
-        local save_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local save_button = self:button({
             name = "Save Config",
             callback = function()
                 local config_name = flags[name_textbox.flag]
@@ -4534,7 +4457,7 @@ end
             end
         })
 
-        local load_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local load_button = self:button({
             name = "Load Config",
             callback = function()
                 local config_name = cfg.selected_config or flags[name_textbox.flag]
@@ -4544,7 +4467,7 @@ end
             end
         })
 
-        local delete_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local delete_button = self:button({
             name = "Delete Config",
             callback = function()
                 local config_name = cfg.selected_config or flags[name_textbox.flag]
@@ -4559,7 +4482,7 @@ end
             end
         })
 
-        local duplicate_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local duplicate_button = self:button({
             name = "Duplicate Config",
             callback = function()
                 local old_name = cfg.selected_config
@@ -4575,7 +4498,7 @@ end
             end
         })
 
-        local rename_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local rename_button = self:button({
             name = "Rename Config",
             callback = function()
                 local old_name = cfg.selected_config
@@ -4591,7 +4514,7 @@ end
             end
         })
 
-        local refresh_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local refresh_button = self:button({
             name = "Refresh List",
             callback = function()
                 local configs = library:get_configs()
@@ -4605,14 +4528,14 @@ end
             end
         })
 
-        local export_textbox = setmetatable({items = {elements = items[ "config_frame" ]}}, library):textbox({
+        local export_textbox = self:textbox({
             name = "Import/Export",
             placeholder = "Paste config data here...",
             default = "",
             flag = library:next_flag()
         })
 
-        local export_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local export_button = self:button({
             name = "Export to Clipboard",
             callback = function()
                 local config_name = cfg.selected_config or flags[name_textbox.flag]
@@ -4639,7 +4562,7 @@ end
             end
         })
 
-        local import_button = setmetatable({items = {elements = items[ "config_frame" ]}}, library):button({
+        local import_button = self:button({
             name = "Import from Textbox",
             callback = function()
                 local import_data = flags[export_textbox.flag]
@@ -4655,7 +4578,7 @@ end
             end
         })
 
-        local autoload_toggle = setmetatable({items = {elements = items[ "config_frame" ]}}, library):toggle({
+        local autoload_toggle = self:toggle({
             name = "Auto-load on startup",
             default = false,
             flag = library:next_flag(),
@@ -4669,7 +4592,10 @@ end
             end
         })
 
-        return setmetatable(cfg, library)
+        if library:get_autoload() then
+            autoload_toggle.set(true)
+            cfg.autoload_enabled = true
+        end
     end
 
 
@@ -5246,6 +5172,20 @@ end
         end)
         
         return success
+    end
+
+    function library:get_autoload()
+        local success, name = pcall(function()
+            if isfile(library.config.autoload_file) then
+                return readfile(library.config.autoload_file)
+            end
+            return nil
+        end)
+        
+        if success and name and name ~= "" then
+            return name
+        end
+        return nil
     end
 
     function library:load_autoload()

@@ -3132,6 +3132,11 @@ end
         end 
         
         function cfg.set_text(text)
+            -- Handle colon-style calls where self is passed as first arg
+            if type(text) == "table" then
+                text = tostring(text.name or text.Name or "")
+            end
+            text = tostring(text or "")
             cfg.name = text
             items[ "name" ].Text = text
         end
