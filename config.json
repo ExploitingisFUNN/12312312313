@@ -1,0 +1,46 @@
+{
+    "18687417158": {
+        "name": "Forsaken",
+        "path": "/scripts/forsaken.lua"
+    },
+    "14259168147": {
+        "name": "Basketball Legends",
+        "path": "/scripts/basketballleg.lua"
+    },
+    "14386691987": {
+        "name": "Basketball Legends",
+        "path": "/scripts/basketballleg.lua"
+    },
+    "126509999114328": {
+        "name": "99 Nights in the Forest",
+        "path": "/scripts/99nights.lua"
+    },
+    "126244816328678": {
+        "name": "DIG",
+        "path": "/scripts/dig.lua"
+    },
+    "99567941238278": {
+        "name": "Ink Game",
+        "path": "/scripts/ink_game.lua"
+    },
+    "125009265613167": {
+        "name": "Ink Game",
+        "path": "/scripts/ink_game.lua"
+    },
+    "125009264613167": {
+        "name": "Ink Game",
+        "path": "/scripts/ink_game.lua"
+    },
+    "121431824618615": {
+        "name": "Ink Game",
+        "path": "/scripts/ink_game.lua"
+    },
+    "126884695634066": {
+        "name": "Grow A Garden",
+        "path": "/scripts/gag.lua"
+    },
+    "137925884276740": {
+        "name": "Build A Plane",
+        "path": "/scripts/bap.lua"
+    }
+}
