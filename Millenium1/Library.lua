@@ -206,19 +206,19 @@ local fonts = {}; do
         return getcustomasset(Name .. ".font");
     end
     
-    local Medium = Register_Font("Medium", 200, "Normal", {
-        Id = "Medium.ttf",
-        Font = game:HttpGet("https://github.com/i77lhm/storage/raw/refs/heads/main/fonts/Inter_28pt-Medium.ttf"),
+    local Medium = Register_Font("PoppinsMedium", 400, "Normal", {
+        Id = "PoppinsMedium.ttf",
+        Font = game:HttpGet("https://github.com/AhmadRez/Fonts-Files/raw/main/Poppins/Poppins-Medium.ttf"),
     })
 
-    local SemiBold = Register_Font("SemiBold", 200, "Normal", {
-        Id = "SemiBold.ttf",
-        Font = game:HttpGet("https://github.com/i77lhm/storage/raw/refs/heads/main/fonts/Inter_28pt-SemiBold.ttf"),
+    local SemiBold = Register_Font("PoppinsSemiBold", 600, "Normal", {
+        Id = "PoppinsSemiBold.ttf",
+        Font = game:HttpGet("https://github.com/AhmadRez/Fonts-Files/raw/main/Poppins/Poppins-SemiBold.ttf"),
     })
 
     fonts = {
-        small = Font.new(Medium, Enum.FontWeight.Regular, Enum.FontStyle.Normal);
-        font = Font.new(SemiBold, Enum.FontWeight.Regular, Enum.FontStyle.Normal);
+        small = Font.new(Medium, Enum.FontWeight.Medium, Enum.FontStyle.Normal);
+        font = Font.new(SemiBold, Enum.FontWeight.SemiBold, Enum.FontStyle.Normal);
     }
 end
 --
@@ -828,13 +828,14 @@ end
             
             library:create( "UICorner" , {
                 Parent = items[ "main" ];
-                CornerRadius = dim(0, 10)
+                CornerRadius = dim(0, 12)
             });
             
             library:create( "UIStroke" , {
                 Color = rgb(23, 23, 29);
                 Parent = items[ "main" ];
-                ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+                Thickness = 1.5
             });
             
             items[ "side_frame" ] = library:create( "Frame" , {
@@ -1055,7 +1056,7 @@ end
             
             library:create( "UICorner" , {
                 Parent = items[ "info" ];
-                CornerRadius = dim(0, 10)
+                CornerRadius = dim(0, 12)
             });
             
             items[ "grey_fill" ] = library:create( "Frame" , {
@@ -1087,16 +1088,28 @@ end
             });
 
             local ResizeButton = library:create("TextButton", {
-                AnchorPoint = vec2(1, 0), BackgroundTransparency = 1, Text = "",
-                Position = dim2(1, 0, 0, 0), Size = dim2(0, 36, 1, 0),
-                SizeConstraint = Enum.SizeConstraint.RelativeYY, Parent = items["info"], Name = "\0",
+                AnchorPoint = vec2(1, 1), BackgroundTransparency = 1, Text = "",
+                Position = dim2(1, -4, 1, -4), Size = dim2(0, 18, 0, 18),
+                Parent = items["info"], Name = "\0",
             })
 
-            local Grip = library:create("ImageLabel", {
-                Image = "rbxassetid://112971167999062", ImageTransparency = 0.5,
-                BackgroundTransparency = 1, Position = dim2(0, 2, 0, 2), Size = dim2(1, -4, 1, -4),
+            -- Obsidian-style diagonal resize grip lines
+            local GripContainer = library:create("Frame", {
+                BackgroundTransparency = 1, Size = dim2(1, 0, 1, 0),
                 Parent = ResizeButton, Name = "\0",
             })
+            
+            for i = 1, 3 do
+                library:create("Frame", {
+                    BackgroundColor3 = rgb(80, 80, 90),
+                    BackgroundTransparency = 0.3,
+                    BorderSizePixel = 0,
+                    Size = dim2(0, 2, 0, (6 + (i * 4))),
+                    Position = dim2(1, -(4 + (i * 4)), 1, -(6 + (i * 4))),
+                    Rotation = 45,
+                    Parent = GripContainer, Name = "\0",
+                })
+            end
 
             local dragging, startPos, startSize
             ResizeButton.InputBegan:Connect(function(input)
@@ -1792,7 +1805,7 @@ end
 
             library:create( "UICorner" , {
                 Parent = items[ "outline" ];
-                CornerRadius = dim(0, 7)
+                CornerRadius = dim(0, 10)
             });
             
             items[ "inline" ] = library:create( "Frame" , {
@@ -1808,7 +1821,7 @@ end
             
             library:create( "UICorner" , {
                 Parent = items[ "inline" ];
-                CornerRadius = dim(0, 7)
+                CornerRadius = dim(0, 10)
             });
             
             items[ "scrolling" ] = library:create( library.is_mobile and "Frame" or "ScrollingFrame" , {
@@ -1886,7 +1899,7 @@ end
             
             library:create( "UICorner" , {
                 Parent = items[ "button" ];
-                CornerRadius = dim(0, 7)
+                CornerRadius = dim(0, 10)
             });
             
             items[ "Icon" ] = library:create( "ImageLabel" , {
